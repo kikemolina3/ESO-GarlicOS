@@ -49,5 +49,11 @@ _gg_desplazar:
 	pop {pc}
 
 
+	.global _gg_fijarBaldosa
+_gg_fijarBaldosa:
+	push {lr}
+	strh r2, [r0,r1]
+	pop {pc}
+
 .end
 
