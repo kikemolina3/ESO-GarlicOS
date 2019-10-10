@@ -21,6 +21,9 @@ WBUFS_LEN = 36				@; longitud de cada buffer de ventana (32+4)
 
 	.arm
 	.align 2
+	
+_coc_:	.word 0
+_res_:  .word 0 
 
 
 	.global _gg_escribirLinea
@@ -32,8 +35,41 @@ WBUFS_LEN = 36				@; longitud de cada buffer de ventana (32+4)
 	@;	R2: número de caracteres a escribir (int n)
 _gg_escribirLinea:
 	push {lr}
+	ldr r3, =_gd_wbfs
+	mov r4, #WBUFS_LEN
+	mla r5, r4, r0, r1
+	ldrb r4, [r5, #4]			@; r4 = dir. inicial WBUF ventana correspondiente
+	
+	@; hallar pos inicial ventana			2*(PCOLS*VFILS*coc + VCOLS*res);
+	
+	ldr r4, =0x06001000			@; r3 = dir base fondo 2
+	mov r8, r0					@; r8 = ventana
+	mov r9, r1					@; r9 = fila actual
+	mov r10, r2					@; r10 = num caracteres escribir
+	mov r1, #PPART
+	ldr r2, =_coc_
+	ldr r3, =_res_
+	bl _ga_divmod
+	mov r5, #PCOLS
+	mov r6, #VFILS
+	mul r7, r5, r6
+	ldr r3, [r3]
+	ldr r2, [r2]
+	mul r6, r7, r2				@; r6 = PCOLS*VFILS*coc
+	mov r11, #VCOLS
+	mul r3, r11, r3
+	add r6,r3
+	mov r5, #2
+	mla r5, r6 ,r5, r4				@; r5 = 1er pixel ventana
+	add r5, #20
+	mov r6, #19
+	strh r6, [r5]
+	
 
-
+	
+	
+	
+.Lfinal:
 	pop {pc}
 
 

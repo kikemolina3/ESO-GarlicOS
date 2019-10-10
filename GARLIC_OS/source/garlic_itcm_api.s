@@ -10,7 +10,7 @@
 
 	.arm
 	.align 2
-
+	
 
 	.global _ga_pid
 	@;Resultado:

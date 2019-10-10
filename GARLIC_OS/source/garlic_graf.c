@@ -189,8 +189,8 @@ int cont_f=0, cont_r=0, j;
 						e = (char*)val2;
 						used2=1;
 					}
-					resultado[cont_r] = e;
-					j++;cont_r++;cont_f+=2;
+					resultado[cont_r] = *e;
+					cont_r++;cont_f+=2;
 					break;
 			}
 		}
@@ -228,4 +228,50 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	_gg_procesarFormato(formato, val1, val2, res);
 	for(i=0; res[i]!='\0'; i++)
 		printf("%c",res[i]);
+		
+		
+	// lectura pControl
+	//unsigned short fila_actual, num_char;
+	//fila_actual= _gd_wbfs[ventana].pControl & 0xFFFF0000 >> 16;
+	//num_char= _gd_wbfs[ventana].pControl & 0xFFFF;
+	//char char_pend[32] = _gd_wbfs[ventana].pChars;
+	
+	_gg_escribirLinea(ventana, 0, 1);
+	bgUpdate();
+	
+	/*
+	for(i=0; res[i]!='\0'; i++)
+	{
+		if(res[i]==9)			//horizontal tab
+		{
+			while(num_char%4!=0)
+			{
+				_gd_wbfs[ventana].pChars[num_char] = ' '; 
+				num_char++;
+				_gd_wbfs[ventana].pControl += 1;				
+			}
+		}
+		else if(res[i]==10)		//line feed
+		{
+			while(num_char!=32)
+			{
+				_gd_wbfs[ventana].pChars[num_char] = ' '; 
+				num_char++;
+				_gd_wbfs[ventana].pControl += 1;				
+			}
+		}
+		else
+		{
+			_gd_wbfs[ventana].pChars[num_char] = res[i];
+			num_char++;
+			_gd_wbfs[ventana].pControl += 1;
+		}
+		if(num_char==32)
+		{
+			swiWaitForVBlank();
+			unsigned int a, b;
+			_gg_escribirLinea(ventana, fila_actual, num_char);
+		}
+	}*/
+	
 }

@@ -41,24 +41,27 @@ int main(int argc, char **argv) {
 	inicializarSistema();
 	
 	consoleDemoInit();
-	
+	/*
 	_gg_escribir("********************************", 0, 0, 0);
 	_gg_escribir("*                              *", 0, 0, 0);
 	_gg_escribir("* Sistema Operativo GARLIC 1.0 *", 0, 0, 0);
 	_gg_escribir("*                              *", 0, 0, 0);
 	_gg_escribir("********************************", 0, 0, 0);
 	_gg_escribir("*** Inicio fase 1_G\n", 0, 0, 0);
-	/*
+	*/
 	_gd_pidz = 6;	// simular zócalo 6
+	/*
 	hola(0);
 	_gd_pidz = 7;	// simular zócalo 7
 	hola(2);
 	_gd_pidz = 5;	// simular zócalo 5
 	prnt(1);
-*/
+
 	_gg_escribir("*** Final fase 1_G\n", 0, 0, 0);	
+	*/
+	_gg_escribir("*** Final fase 1_G\n", 0, 0, 3);	
 	
-	GARLIC_printf("hola q ase");
+	//GARLIC_printf("\tHola");
 	while(1) {
 		swiWaitForVBlank();
 	}							// parar el procesador en un bucle infinito
