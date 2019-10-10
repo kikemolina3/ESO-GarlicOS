@@ -57,6 +57,8 @@ int main(int argc, char **argv) {
 	prnt(1);
 */
 	_gg_escribir("*** Final fase 1_G\n", 0, 0, 0);	
+	
+	GARLIC_printf("hola q ase");
 	while(1) {
 		swiWaitForVBlank();
 	}							// parar el procesador en un bucle infinito

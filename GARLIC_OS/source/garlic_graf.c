@@ -23,7 +23,36 @@
 /* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro*/
 void _gg_generarMarco(int v)
 {
-	
+	unsigned int coc, res;
+	int i;
+	GARLIC_divmod(v, PPART, &coc, &res);
+	unsigned int despl = 2*(PCOLS*VFILS*coc + VCOLS*res);
+	_gg_fijarBaldosa(0x06005000, despl, 103);				//esquina izquierda superior
+	despl += 2;
+	for(i=0; i<VCOLS-2; i++)								//fila superior (excto. esquinas)
+	{
+		_gg_fijarBaldosa(0x06005000, despl, 99);
+		despl += 2;
+	}
+	_gg_fijarBaldosa(0x06005000, despl, 102);				//esquina derecha superior
+	for(i=0; i<VFILS-2; i++)								//laterales derecho & izquierdo
+	{
+		despl = despl + 2 + 2*(PCOLS-VCOLS);
+		_gg_fijarBaldosa(0x06005000, despl, 96);
+		despl = despl + 2*(VCOLS-1);
+		_gg_fijarBaldosa(0x06005000, despl, 98);
+	}
+	despl = despl + 2 + 2*(PCOLS-VCOLS); 
+	_gg_fijarBaldosa(0x06005000, despl, 100);				//esquina inferior izquierda
+	despl += 2;
+	for(i=0; i<VCOLS-2; i++)								//fila inferior (excto. esquinas)
+	{
+		_gg_fijarBaldosa(0x06005000, despl, 97);
+		despl += 2;
+	}
+	_gg_fijarBaldosa(0x06005000, despl, 101);				//esquina inferior derecha
+
+
 }
 
 
@@ -51,8 +80,8 @@ void _gg_iniGrafA()
 	bgSetPriority(bg3, 0);
 	decompress(garlic_fontTiles, bgGetGfxPtr(bg2), LZ77Vram);
 	_gs_copiaMem(garlic_fontPal, BG_PALETTE, sizeof(garlic_fontPal));
-	//for(i=0; i<NVENT; i++)
-	//	_gg_generarMarco(i);
+	for(i=0; i<NVENT; i++)
+		_gg_generarMarco(i);
 	bgSetScale(bg3,0x00000200,0x00000200);
 	bgUpdate();
 }
@@ -73,10 +102,108 @@ void _gg_iniGrafA()
 		suficiente para albergar todo el mensaje, incluyendo los caracteres
 		literales del formato y la transcripción a código ASCII de los valores.
 */
-void _gg_procesarFormato(char *formato, unsigned int val1, unsigned int val2,
+void _gg_procesarFormato(char *formato, unsigned int val1, unsigned int val2,      			/// NECESITA REFRACTORING
 																char *resultado)
 {
 	
+int cont_f=0, cont_r=0, j;
+	char used1=0, used2=0;
+	char * e;
+	char temp_int[12], temp_hex[9];
+	while(cont_f<VCOLS*3 && formato[cont_f]!='\0')
+	{
+		if(formato[cont_f]=='%' && (!used1 || !used2))
+		{
+			switch(formato[cont_f+1])
+			{
+				case 'd':
+					if(!used1)
+					{
+						_gs_num2str_dec(temp_int, 12, val1);
+						used1=1;
+					}
+					else if(!used2)
+					{
+						_gs_num2str_dec(temp_int, 12, val2);
+						used2=1;
+					}
+					j=0;
+					while(temp_int[j]==' ')		j++;
+					while(temp_int[j]!='\0')
+					{
+						resultado[cont_r] = temp_int[j];
+						j++;
+						cont_r++;
+					}
+					cont_f += 2;
+					break;
+				case 'x':
+					if(!used1)
+					{
+						_gs_num2str_hex(temp_hex, 9, val1);
+						used1=1;
+					}
+					else if(!used2)
+					{
+						_gs_num2str_hex(temp_hex, 9, val2);
+						used2=1;
+					}
+					j=0;
+					while(temp_hex[j]!='\0')
+					{
+						resultado[cont_r] = temp_hex[j];
+						j++;
+						cont_r++;
+					}
+					cont_f += 2;
+					break;
+				case 's':
+					if(!used1)
+					{
+						j=0;
+						e = (char*)val1;
+						used1=1;
+					}
+					else if(!used2)
+					{
+						j=0;
+						e = (char*)val2;
+						used2=1;
+					}
+					while(e[j]!='\0' && cont_f<99)
+						{
+							resultado[cont_r] = e[j];
+							j++;
+							cont_r++;
+						}
+					cont_f += 2;
+					break;
+				case 'c':
+					if(!used1)
+					{
+						e = (char*)val1;
+						used1=1;
+					}
+					else if(!used2)
+					{
+						e = (char*)val2;
+						used2=1;
+					}
+					resultado[cont_r] = e;
+					j++;cont_r++;cont_f+=2;
+					break;
+			}
+		}
+		else
+		{
+			resultado[cont_r]=formato[cont_f];
+			cont_r++;cont_f++;
+		}
+		
+	}
+	resultado[cont_r]='\0';
+	return;
+
 }
 
 
@@ -96,5 +223,9 @@ void _gg_procesarFormato(char *formato, unsigned int val1, unsigned int val2,
 void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int ventana)
 {
 
-	
+	//char mens[VCOLS*3];
+	char res[100];int i;
+	_gg_procesarFormato(formato, val1, val2, res);
+	for(i=0; res[i]!='\0'; i++)
+		printf("%c",res[i]);
 }
