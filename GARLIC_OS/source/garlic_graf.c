@@ -26,7 +26,7 @@
 #define PFILS VFILS * PPART // número de filas totales
 
 
-/* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro*/
+/* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro */
 void _gg_generarMarco(int v)
 {
 	unsigned int coc, res;
@@ -240,6 +240,9 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	int fila_actual = (_gd_wbfs[ventana].pControl & 0xFFFF0000) >> 16;
 	int num_char = _gd_wbfs[ventana].pControl & 0xFFFF;
 	int i;
+	
+	char completa=0;
+	
 	// STRING TO BUFFER & IMPRESSION
 	for(i=0; res[i]!='\0'; i++)
 	{
@@ -254,7 +257,7 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		}
 		else if(res[i]==10)		//line feed
 		{
-			while(num_char!=32)
+			while(num_char!=VCOLS)
 			{
 				_gd_wbfs[ventana].pChars[num_char] = ' '; 
 				num_char++;
@@ -267,11 +270,17 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 			num_char++;
 			_gd_wbfs[ventana].pControl += 1;
 		}
-		if(num_char==32)
+		if(num_char==VCOLS)
 		{
 			swiWaitForVBlank();
+			completa=1;
+			if(fila_actual==VFILS)
+			{
+				_gg_desplazar(ventana);
+			}
 			_gg_escribirLinea(ventana, fila_actual, num_char);
-			fila_actual++;
+			if(fila_actual!=VFILS)
+				fila_actual++;
 			num_char=0;
 			_gd_wbfs[ventana].pControl = 0;
 			if(res[i+1]==' ')			//elimina espacio linea inicial
@@ -279,9 +288,17 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		}
 	}
 	
-	//tratar ultima linea
-	swiWaitForVBlank();
-	_gg_escribirLinea(ventana, fila_actual, num_char);
+	//tratar ultima linea incompleta
+	//swiWaitForVBlank();
+	/*
+	if(fila_actual==VFILS && completa==1)
+	{
+		_gg_desplazar(ventana);
+		completa=0;
+	}
+	*/
+	//_gg_escribirLinea(ventana, fila_actual, num_char);
+	
 	
 	//salvar estado gd_wbufs
 	int aux = fila_actual << 16;

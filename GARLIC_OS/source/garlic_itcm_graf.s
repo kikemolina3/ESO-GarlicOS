@@ -81,9 +81,8 @@ _gg_escribirLinea:
 	@;comprobar que lo a escribir se caracter valido
 	mov r0,#96
 	cmp r11, r0
-	bhs .Lno_str
+	movhs r11,#0
 	strh r11, [r5, r7]
-.Lno_str:	
 
 	add r6,#1
 	add r7,#2
@@ -99,10 +98,55 @@ _gg_escribirLinea:
 	@;Parámetros:
 	@;	R0: ventana a desplazar (int v)
 _gg_desplazar:
-	push {lr}
-
-
-	pop {pc}
+	push {r0-r12,lr}
+	
+	ldr r4, =0x06002000
+	mov r1, #PPART
+	ldr r2, =_coc_
+	ldr r3, =_res_
+	bl _ga_divmod
+	mov r5, #PCOLS
+	mov r8,#PCOLS
+	mov r6, #VFILS
+	mul r7, r5, r6
+	ldr r3, [r3]
+	ldr r2, [r2]
+	mul r6, r7, r2				@; r6 = PCOLS*VFILS*coc
+	mov r11, #VCOLS
+	mul r3, r11, r3
+	add r6,r3
+	mov r5, #2
+	mla r5, r6 ,r5, r4				@; r5 = 1er pixel ventana
+	
+	mov r7,#2
+	mul r10, r11, r7				@; r10 = num_bytes_copiar
+	mul r4, r8, r7					@; r4 = 2*pcols
+	mov r7,#0
+	mov r0,r12
+	mov r2,r10
+	mov r6,#VFILS
+	mov r1,r5
+.Lrepeat:
+	cmp r6, r7
+	beq .Lfin_dma
+	add r0,r1,r4					@; @fuente = @fuente + 1 linea
+	bl _gs_copiaMem
+	add r7,#1
+	mov r1,r0						@; @fuente ==> @destino
+	b .Lrepeat
+.Lfin_dma:	
+	add r1,r4
+	mov r5,#0
+	mov r6,#VCOLS
+	mov r7,#0
+.Lrepeat2:
+	cmp r5,r6
+	beq .Lfin_ultima
+	mov r12,#0
+	strh r12,[r1,r7]
+	add r7,#2
+.Lfin_ultima:
+	pop {r0-r12,pc}
 
 
 	.global _gg_fijarBaldosa
