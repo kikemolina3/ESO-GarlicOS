@@ -11,6 +11,12 @@
 #include <garlic_font.h>	// definición gráfica de caracteres
 #include <GARLIC_API.h>
 
+
+
+
+//quitar
+#include<string.h>
+
 /* definiciones para realizar cálculos relativos a la posición de los caracteres dentro de las ventanas gráficas, que pueden ser 4 o 16 */
 #define NVENT 4 // número de ventanas totales
 #define PPART 2 // número de ventanas horizontales o verticales			// (particiones de pantalla)
@@ -110,7 +116,7 @@ int cont_f=0, cont_r=0, j;
 	char used1=0, used2=0;
 	char * e;
 	char temp_int[12], temp_hex[9];
-	while(cont_f<VCOLS*4 && formato[cont_f]!='\0')
+	while(cont_f<VCOLS*3 && formato[cont_f]!='\0')
 	{
 		if(formato[cont_f]=='%' && (!used1 || !used2))
 		{
@@ -189,9 +195,12 @@ int cont_f=0, cont_r=0, j;
 						e = (char*)val2;
 						used2=1;
 					}
-					resultado[cont_r] = *e;
+					resultado[cont_r] = (unsigned int)e;
 					cont_r++;cont_f+=2;
 					break;
+				case '%':
+					resultado[cont_r]=formato[cont_f];
+					cont_r++;cont_f+=2;
 			}
 		}
 		else
@@ -226,14 +235,11 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	char res[100];
 	
 	_gg_procesarFormato(formato, val1, val2, res);
-	
+	//printf("%s",res);
 	//lectura pControl
-	int fila_actual/*, num_char*/;
-	fila_actual = (_gd_wbfs[ventana].pControl & 0xFFFF0000) >> 16;
-	//num_char = _gd_wbfs[ventana].pControl & 0xFFFF;
-	printf(":%i:\n", fila_actual);
+	int fila_actual = (_gd_wbfs[ventana].pControl & 0xFFFF0000) >> 16;
+	int num_char = _gd_wbfs[ventana].pControl & 0xFFFF;
 	int i;
-	int num_char=0;
 	// STRING TO BUFFER & IMPRESSION
 	for(i=0; res[i]!='\0'; i++)
 	{
@@ -263,19 +269,22 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		}
 		if(num_char==32)
 		{
-			_gg_escribirLinea(ventana, fila_actual, num_char);
 			swiWaitForVBlank();
+			_gg_escribirLinea(ventana, fila_actual, num_char);
 			fila_actual++;
 			num_char=0;
+			_gd_wbfs[ventana].pControl = 0;
 			if(res[i+1]==' ')			//elimina espacio linea inicial
 				i++;
 		}
 	}
 	
+	//tratar ultima linea
+	swiWaitForVBlank();
+	_gg_escribirLinea(ventana, fila_actual, num_char);
+	
 	//salvar estado gd_wbufs
-	printf(":%i:\n", fila_actual);
 	int aux = fila_actual << 16;
-	//printf(":%i:\n", aux);
 	aux = aux + num_char;
 	_gd_wbfs[ventana].pControl= aux;
 	

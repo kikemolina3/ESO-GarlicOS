@@ -51,23 +51,24 @@ int main(int argc, char **argv) {
 	/*
 	_gd_pidz = 6;	// simular zócalo 6
 	hola(0);
-	*/
 	
-	_gg_escribir("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut eget est congue, pulvinar erat nec, dignissim ex. In eu lectus vel quam dignissim tempus in at erat. Sed venenatis tortor quis lectus accumsan, et tempus lorem fringilla. %s/nNumero: %d/n", (unsigned int)"String afegit", (unsigned int)2345, 1);
+	
+	//_gg_escribir("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut eget est congue, pulvinar erat necrofanta, dignissim ex. In eu lectus vel quam dignissim tempus in at erat. Sed venenatis tortor quis lectus accumsan, et tempus lorem fringilla. %s/nNumero: %d/n", (unsigned int)"String afegit", (unsigned int)2345, 1);
+	
+	//_gg_escribir("hola %%t %%x %%i",0,0,2);	
 	
 	_gd_pidz = 7;	// simular zócalo 7
 	hola(1);     //deberia ser hola(2)
-	/*
+	*/
 	_gd_pidz = 5;	// simular zócalo 5
 	prnt(1);
-	*/
+	
+
 	_gg_escribir("*** Final fase 1_G\n", 0, 0, 0);	
 	
 	//_gg_escribir("Aeiou aeiou...\n", 0, 0, 0);	
 	
-	//_gg_escribir("Abderraham tiene un antojo de leche y no soy yo quien se lo vaya a dar.\n", 0, 0, 2);	
-	
-	//GARLIC_printf("\tHola");
+	//_gg_escribir("Abderraham tiene un antojo de leche y no soy yo quien se lo vaya a dar.\n", 0, 0, 2);	//GARLIC_printf("\tHola");
 	while(1) {
 		swiWaitForVBlank();
 	}							// parar el procesador en un bucle infinito

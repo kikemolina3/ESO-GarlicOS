@@ -77,8 +77,13 @@ _gg_escribirLinea:
 	ldrb r11, [r12, r6]
 	sub r11, #32
 	@;mov r11, #40
-	strh r11, [r5, r7]
 	
+	@;comprobar que lo a escribir se caracter valido
+	mov r0,#96
+	cmp r11, r0
+	bhs .Lno_str
+	strh r11, [r5, r7]
+.Lno_str:	
 
 	add r6,#1
 	add r7,#2

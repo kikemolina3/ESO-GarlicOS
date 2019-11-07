@@ -53,6 +53,7 @@ int prnt(int arg)				/* Proceso de prueba */
 	GARLIC_printf("\nPrueba juego de caracteres:\n");
 	for (i = 32; i < 128; i++)		// imprimir todo el repertorio de códigos
 		GARLIC_printf("%c", i);		// ASCII visibles (>31) y estándar (<128)
+		
 
 	GARLIC_printf("\n\nPrueba numeros:\n");
 	for (i = 0; i < 10; i++)
