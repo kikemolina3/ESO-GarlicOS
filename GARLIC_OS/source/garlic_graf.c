@@ -110,7 +110,7 @@ int cont_f=0, cont_r=0, j;
 	char used1=0, used2=0;
 	char * e;
 	char temp_int[12], temp_hex[9];
-	while(cont_f<VCOLS*3 && formato[cont_f]!='\0')
+	while(cont_f<VCOLS*4 && formato[cont_f]!='\0')
 	{
 		if(formato[cont_f]=='%' && (!used1 || !used2))
 		{
@@ -223,24 +223,17 @@ int cont_f=0, cont_r=0, j;
 void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int ventana)
 {
 
-	//char mens[VCOLS*3];
-	char res[100];int i;
+	char res[100];
+	
 	_gg_procesarFormato(formato, val1, val2, res);
-	/*
-	for(i=0; res[i]!='\0'; i++)
-		printf("%c",res[i]);
-	*/
-		
-	// lectura pControl
-	//unsigned short fila_actual, num_char;
-	//fila_actual= _gd_wbfs[ventana].pControl & 0xFFFF0000 >> 16;
-	//num_char= _gd_wbfs[ventana].pControl & 0xFFFF;
-	//char char_pend[32] = _gd_wbfs[ventana].pChars;
 	
-	//_gg_escribirLinea(ventana, 0, 1);
-	//bgUpdate();
-	
-	int p=0, num_char=0;
+	//lectura pControl
+	int fila_actual/*, num_char*/;
+	fila_actual = (_gd_wbfs[ventana].pControl & 0xFFFF0000) >> 16;
+	//num_char = _gd_wbfs[ventana].pControl & 0xFFFF;
+	printf(":%i:\n", fila_actual);
+	int i;
+	int num_char=0;
 	// STRING TO BUFFER & IMPRESSION
 	for(i=0; res[i]!='\0'; i++)
 	{
@@ -270,11 +263,20 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		}
 		if(num_char==32)
 		{
-			_gg_escribirLinea(ventana, p, num_char);
+			_gg_escribirLinea(ventana, fila_actual, num_char);
 			swiWaitForVBlank();
-			p++;
+			fila_actual++;
 			num_char=0;
+			if(res[i+1]==' ')			//elimina espacio linea inicial
+				i++;
 		}
 	}
+	
+	//salvar estado gd_wbufs
+	printf(":%i:\n", fila_actual);
+	int aux = fila_actual << 16;
+	//printf(":%i:\n", aux);
+	aux = aux + num_char;
+	_gd_wbfs[ventana].pControl= aux;
 	
 }

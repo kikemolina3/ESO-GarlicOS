@@ -42,9 +42,8 @@ _gg_escribirLinea:
 	add r5, #4
 	add r12, r5, r3
 	@; hallar pos inicial ventana			2*(PCOLS*VFILS*coc + VCOLS*res);
-	
 	ldr r4, =0x06002000			@; r3 = dir base fondo 2
-	mov r8, r0					@; r8 = ventana
+	@;mov r8, r0					@; r8 = ventana
 	mov r9, r1					@; r9 = fila actual
 	mov r10, r2					@; r10 = num caracteres escribir
 	mov r1, #PPART
@@ -52,6 +51,7 @@ _gg_escribirLinea:
 	ldr r3, =_res_
 	bl _ga_divmod
 	mov r5, #PCOLS
+	mov r8,#PCOLS
 	mov r6, #VFILS
 	mul r7, r5, r6
 	ldr r3, [r3]
@@ -62,6 +62,11 @@ _gg_escribirLinea:
 	add r6,r3
 	mov r5, #2
 	mla r5, r6 ,r5, r4				@; r5 = 1er pixel ventana
+	
+	mov r11,#2
+	mul r7, r8, r11					
+	mul r7, r9
+	add r5, r7
 	
 	mov r6, #0
 	mov r7,#0
