@@ -74,7 +74,7 @@ void _gg_iniGrafA()
 	int bg2, bg3;
 	videoSetMode(MODE_5_2D);
 	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
-	bg2 = bgInit(2, BgType_ExRotation, BgSize_ER_512x512, 2, 0);
+	bg2 = bgInit(2, BgType_ExRotation, BgSize_ER_512x512, 4, 0);
 	bg3 = bgInit(3, BgType_ExRotation, BgSize_ER_512x512, 10, 0);
 	bgSetPriority(bg2, 1);
 	bgSetPriority(bg3, 0);
@@ -226,9 +226,10 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	//char mens[VCOLS*3];
 	char res[100];int i;
 	_gg_procesarFormato(formato, val1, val2, res);
+	/*
 	for(i=0; res[i]!='\0'; i++)
 		printf("%c",res[i]);
-		
+	*/
 		
 	// lectura pControl
 	//unsigned short fila_actual, num_char;
@@ -236,10 +237,11 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	//num_char= _gd_wbfs[ventana].pControl & 0xFFFF;
 	//char char_pend[32] = _gd_wbfs[ventana].pChars;
 	
-	_gg_escribirLinea(ventana, 0, 1);
-	bgUpdate();
+	//_gg_escribirLinea(ventana, 0, 1);
+	//bgUpdate();
 	
-	/*
+	int p=0, num_char=0;
+	// STRING TO BUFFER & IMPRESSION
 	for(i=0; res[i]!='\0'; i++)
 	{
 		if(res[i]==9)			//horizontal tab
@@ -268,10 +270,11 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		}
 		if(num_char==32)
 		{
+			_gg_escribirLinea(ventana, p, num_char);
 			swiWaitForVBlank();
-			unsigned int a, b;
-			_gg_escribirLinea(ventana, fila_actual, num_char);
+			p++;
+			num_char=0;
 		}
-	}*/
+	}
 	
 }

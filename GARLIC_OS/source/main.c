@@ -41,15 +41,15 @@ int main(int argc, char **argv) {
 	inicializarSistema();
 	
 	consoleDemoInit();
-	/*
-	_gg_escribir("********************************", 0, 0, 0);
-	_gg_escribir("*                              *", 0, 0, 0);
-	_gg_escribir("* Sistema Operativo GARLIC 1.0 *", 0, 0, 0);
+	
+	//_gg_escribir("********************************", 0, 0, 0);
+	//_gg_escribir("*                              *", 0, 0, 0);
+	/*_gg_escribir("* Sistema Operativo GARLIC 1.0 *", 0, 0, 0);
 	_gg_escribir("*                              *", 0, 0, 0);
 	_gg_escribir("********************************", 0, 0, 0);
 	_gg_escribir("*** Inicio fase 1_G\n", 0, 0, 0);
 	*/
-	_gd_pidz = 6;	// simular zócalo 6
+	//_gd_pidz = 6;	// simular zócalo 6
 	/*
 	hola(0);
 	_gd_pidz = 7;	// simular zócalo 7
@@ -59,7 +59,13 @@ int main(int argc, char **argv) {
 
 	_gg_escribir("*** Final fase 1_G\n", 0, 0, 0);	
 	*/
-	_gg_escribir("*** Final fase 1_G\n", 0, 0, 3);	
+	//_gg_escribir("*** Final fase 1_G\n", 0, 0, 0);	
+	//_gg_escribir("*** Final fase 1_G\n", 0, 0, 2);	
+	_gg_escribir("*** Final fase 1_G\n", 0, 0, 3);
+	
+	_gg_escribir("Aeiou aeiou...\n", 0, 0, 0);	
+	
+	_gg_escribir("Abcdefghijklmnopqrstuvwxyz\n", 0, 0, 2);	
 	
 	//GARLIC_printf("\tHola");
 	while(1) {

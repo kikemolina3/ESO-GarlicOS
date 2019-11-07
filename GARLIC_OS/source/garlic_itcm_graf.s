@@ -34,15 +34,16 @@ _res_:  .word 0
 	@;	R1: fila actual (int f)
 	@;	R2: número de caracteres a escribir (int n)
 _gg_escribirLinea:
-	push {lr}
+	push {r0-r12, lr}
 	ldr r3, =_gd_wbfs
 	mov r4, #WBUFS_LEN
-	mla r5, r4, r0, r1
-	ldrb r4, [r5, #4]			@; r4 = dir. inicial WBUF ventana correspondiente
-	
+	mul r5, r4, r0
+	@;ldrb r4, [r5, #4]			@; r5 = dir. inicial WBUF ventana correspondiente
+	add r5, #4
+	add r12, r5, r3
 	@; hallar pos inicial ventana			2*(PCOLS*VFILS*coc + VCOLS*res);
 	
-	ldr r4, =0x06001000			@; r3 = dir base fondo 2
+	ldr r4, =0x06002000			@; r3 = dir base fondo 2
 	mov r8, r0					@; r8 = ventana
 	mov r9, r1					@; r9 = fila actual
 	mov r10, r2					@; r10 = num caracteres escribir
@@ -61,16 +62,25 @@ _gg_escribirLinea:
 	add r6,r3
 	mov r5, #2
 	mla r5, r6 ,r5, r4				@; r5 = 1er pixel ventana
-	add r5, #20
-	mov r6, #19
-	strh r6, [r5]
+	
+	mov r6, #0
+	mov r7,#0
+.Lbuclebuffer:
+	cmp r6,r10
+	beq .Lfinal
+	
+	ldrb r11, [r12, r6]
+	sub r11, #32
+	@;mov r11, #40
+	strh r11, [r5, r7]
 	
 
-	
-	
+	add r6,#1
+	add r7,#2
+	b .Lbuclebuffer
 	
 .Lfinal:
-	pop {pc}
+	pop {r0-r12, pc}
 
 
 	.global _gg_desplazar
