@@ -29,34 +29,34 @@
 /* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro */
 void _gg_generarMarco(int v)
 {
-	unsigned int coc, res;
+	unsigned int coc, res, base=0x06005000;
 	int i;
 	GARLIC_divmod(v, PPART, &coc, &res);
 	unsigned int despl = 2*(PCOLS*VFILS*coc + VCOLS*res);
-	_gg_fijarBaldosa(0x06005000, despl, 103);				//esquina izquierda superior
+	_gg_fijarBaldosa(base, despl, 103);				//esquina izquierda superior
 	despl += 2;
 	for(i=0; i<VCOLS-2; i++)								//fila superior (excto. esquinas)
 	{
-		_gg_fijarBaldosa(0x06005000, despl, 99);
+		_gg_fijarBaldosa(base, despl, 99);
 		despl += 2;
 	}
-	_gg_fijarBaldosa(0x06005000, despl, 102);				//esquina derecha superior
+	_gg_fijarBaldosa(base, despl, 102);				//esquina derecha superior
 	for(i=0; i<VFILS-2; i++)								//laterales derecho & izquierdo
 	{
 		despl = despl + 2 + 2*(PCOLS-VCOLS);
-		_gg_fijarBaldosa(0x06005000, despl, 96);
+		_gg_fijarBaldosa(base, despl, 96);
 		despl = despl + 2*(VCOLS-1);
-		_gg_fijarBaldosa(0x06005000, despl, 98);
+		_gg_fijarBaldosa(base, despl, 98);
 	}
 	despl = despl + 2 + 2*(PCOLS-VCOLS); 
-	_gg_fijarBaldosa(0x06005000, despl, 100);				//esquina inferior izquierda
+	_gg_fijarBaldosa(base, despl, 100);				//esquina inferior izquierda
 	despl += 2;
 	for(i=0; i<VCOLS-2; i++)								//fila inferior (excto. esquinas)
 	{
-		_gg_fijarBaldosa(0x06005000, despl, 97);
+		_gg_fijarBaldosa(base, despl, 97);
 		despl += 2;
 	}
-	_gg_fijarBaldosa(0x06005000, despl, 101);				//esquina inferior derecha
+	_gg_fijarBaldosa(base, despl, 101);				//esquina inferior derecha
 
 
 }
@@ -241,8 +241,6 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	int num_char = _gd_wbfs[ventana].pControl & 0xFFFF;
 	int i;
 	
-	char completa=0;
-	
 	// STRING TO BUFFER & IMPRESSION
 	for(i=0; res[i]!='\0'; i++)
 	{
@@ -273,7 +271,7 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		if(num_char==VCOLS)
 		{
 			swiWaitForVBlank();
-			completa=1;
+			//completa=1;
 			if(fila_actual==VFILS)
 			{
 				_gg_desplazar(ventana);
