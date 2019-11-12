@@ -6,16 +6,9 @@
 
 ------------------------------------------------------------------------------*/
 #include <nds.h>
-#include <stdio.h>
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 #include <garlic_font.h>	// definición gráfica de caracteres
-#include <GARLIC_API.h>
 
-
-
-
-//quitar
-#include<string.h>
 
 /* definiciones para realizar cálculos relativos a la posición de los caracteres dentro de las ventanas gráficas, que pueden ser 4 o 16 */
 #define NVENT 4 // número de ventanas totales
@@ -31,7 +24,8 @@ void _gg_generarMarco(int v)
 {
 	unsigned int coc, res, base=0x06005000;
 	int i;
-	GARLIC_divmod(v, PPART, &coc, &res);
+	coc=v/PPART;
+	res=v%PPART;
 	unsigned int despl = 2*(PCOLS*VFILS*coc + VCOLS*res);
 	_gg_fijarBaldosa(base, despl, 103);				//esquina izquierda superior
 	despl += 2;
@@ -89,6 +83,7 @@ void _gg_iniGrafA()
 	for(i=0; i<NVENT; i++)
 		_gg_generarMarco(i);
 	bgSetScale(bg3,0x00000200,0x00000200);
+	bgSetScale(bg2,0x00000200,0x00000200);
 	bgUpdate();
 }
 
@@ -201,6 +196,10 @@ int cont_f=0, cont_r=0, j;
 				case '%':
 					resultado[cont_r]=formato[cont_f];
 					cont_r++;cont_f+=2;
+					break;
+				default:
+					resultado[cont_r]=formato[cont_f];
+					cont_r++;cont_f+=2;
 			}
 		}
 		else
@@ -235,8 +234,7 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	char res[100];
 	
 	_gg_procesarFormato(formato, val1, val2, res);
-	//printf("%s",res);
-	//lectura pControl
+	
 	int fila_actual = (_gd_wbfs[ventana].pControl & 0xFFFF0000) >> 16;
 	int num_char = _gd_wbfs[ventana].pControl & 0xFFFF;
 	int i;
@@ -271,13 +269,12 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		if(num_char==VCOLS)
 		{
 			swiWaitForVBlank();
-			//completa=1;
-			if(fila_actual==VFILS)
+			if(fila_actual==VFILS-1)
 			{
 				_gg_desplazar(ventana);
 			}
 			_gg_escribirLinea(ventana, fila_actual, num_char);
-			if(fila_actual!=VFILS)
+			if(fila_actual!=VFILS-1)
 				fila_actual++;
 			num_char=0;
 			_gd_wbfs[ventana].pControl = 0;
@@ -285,18 +282,6 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 				i++;
 		}
 	}
-	
-	//tratar ultima linea incompleta
-	//swiWaitForVBlank();
-	/*
-	if(fila_actual==VFILS && completa==1)
-	{
-		_gg_desplazar(ventana);
-		completa=0;
-	}
-	*/
-	//_gg_escribirLinea(ventana, fila_actual, num_char);
-	
 	
 	//salvar estado gd_wbufs
 	int aux = fila_actual << 16;

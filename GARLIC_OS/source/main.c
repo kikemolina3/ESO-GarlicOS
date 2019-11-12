@@ -15,6 +15,7 @@
 int hola(int);				// función que simula la ejecución del proceso
 extern int prnt(int);		// otra función (externa) de test correspondiente
 							// a un proceso de usuario
+extern int ccdl(int);
 
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
 
@@ -40,8 +41,6 @@ int main(int argc, char **argv) {
 	
 	inicializarSistema();
 	
-	consoleDemoInit();
-	
 	_gg_escribir("********************************", 0, 0, 0);
 	_gg_escribir("*                              *", 0, 0, 0);
 	_gg_escribir("* Sistema Operativo GARLIC 1.0 *", 0, 0, 0);
@@ -50,7 +49,7 @@ int main(int argc, char **argv) {
 	_gg_escribir("*** Inicio fase 1_G\n", 0, 0, 0);
 	
 	_gd_pidz = 6;	// simular zócalo 6
-	hola(0);
+	ccdl(3);
 	
 	_gd_pidz = 7;	// simular zócalo 7
 	hola(2);     

@@ -53,7 +53,7 @@ LDFLAGS	=	-specs=ds_arm9.specs $(ARCH)
 #-------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project (order is important)
 #-------------------------------------------------------------------------------
-LIBS	:= 	-lfilesystem -lfat -lnds9
+LIBS	:= 	-lfilesystem -lfat -lnds9 -lm
  
 #-------------------------------------------------------------------------------
 # list of directories containing libNDS libraries, this must be the top level
