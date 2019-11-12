@@ -15,6 +15,8 @@
 
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
 
+int punteroLibre=INI_MEM;		// direccion de memoria a primera pos. libre 
+
 //* ESTRUCTURAS PARA MANEJAR LA GESTION DE MEMORIA *//
 
 /*CABECERA FICHERO ELF */
@@ -67,6 +69,8 @@ typedef struct{
 	unsigned long int r_info;
 }Elf32_Rel;
 
+
+
 /* _gm_initFS: inicializa el sistema de ficheros, devolviendo un valor booleano
 					para indiciar si dicha inicialización ha tenido éxito; */
 int _gm_initFS()
@@ -92,33 +96,61 @@ intFunc _gm_cargarPrograma(char *keyName)
 {
 	FILE* prog;
 	Elf32_Ehdr header;
-	Elf32_Phdr *buffSegment;
-	Elf32_Shdr *buffSection;
-	int  bytesSegmentos,bytesSecciones;
+	Elf32_Phdr segment;
+	int *buffAux,size,puntero,pos,numSeg;
 	char path[21]="/Programas/";
-
+	header.e_entry=0;
     strcat(path, keyName);
 	strcat(path, ".elf");
 	prog = fopen(path, "rb");
 	
-	if (prog)
-	{
-		fread(&header,1,sizeof(header),prog);
+	
+	if(prog){
+		fseek(prog,0,SEEK_END);
+		size=ftell(prog);
+		printf("%i\n",size);
+		buffAux=malloc(size);
+		fseek(prog,0,SEEK_SET);
+		fread(buffAux,1,size,prog);
+		//buffAux contiene todo el fichero ELF
 		
-		bytesSegmentos=header.e_phnum*header.e_phentsize;
-		bytesSecciones=header.e_shnum*header.e_shentsize;
-		//printf("%i,%i\n",bytesSegmentos,bytesSecciones);
-		buffSegment=malloc(bytesSegmentos);
-		buffSection=malloc(bytesSecciones);
+		//Cogemos los datos de la cabecera que necesitamos
+		header.e_entry= buffAux[6];
+		header.e_phoff= buffAux[7];
+		header.e_shoff= buffAux[8];
+		header.e_phentsize= buffAux[10] && 0xF0;
+		header.e_phnum= buffAux[11] && 0x0F;
+		header.e_shentsize= buffAux[7] ;
+		header.e_shnum= buffAux[12] && 0x0F;
 		
-		fseek(prog,header.e_phoff,SEEK_SET);
-		fread(buffSegment,1,bytesSegmentos,prog);
 		
-		fseek(prog,header.e_shoff,SEEK_SET);
-		fread(buffSection,1,bytesSecciones,prog);
-		fclose(prog);
-		
-	}
-	return ((intFunc) header.e_entry);
+		//Recorremos los segmentos y cargamos los tipos LOAD
+		for(numSeg=0;numSeg<header.e_phnum;numSeg++){
+			pos=header.e_phoff/4+(numSeg*header.e_phentsize);
+			segment.p_type= buffAux[pos];
+			if(segment.p_type==1){
+				printf("Hay segmento a cargar en memoria\n");
+				
+				//Cogemos datos del segmento 
+				segment.p_offset=buffAux[pos+1];
+				segment.p_paddr=buffAux[pos+3];
+				segment.p_filesz=buffAux[pos+4];
+				segment.p_memsz=buffAux[pos+5];
+				segment.p_flags=buffAux[pos+6];
+				
+				//Cargamos en memoria el segmento
+				puntero=punteroLibre;
+				if(numSeg==0) header.e_entry=puntero;
+				_gs_copiaMem((const void *)segment.p_offset,(void *) puntero,segment.p_memsz);
+				punteroLibre+=segment.p_memsz;
+				
+				//Reubicamos las posiciones sensibles
+				_gm_reubicar((char*)&buffAux,(unsigned int)segment.p_paddr,(unsigned int *)puntero);
+				
+			}
+		}
+		return ((intFunc) header.e_entry);
+	}else return (0);
+	
 }
 

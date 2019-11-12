@@ -232,8 +232,7 @@ extern int _gs_num2str_hex(char * numstr, unsigned int length, unsigned int num)
 				memoria inicial (*source) a partir de otra posición de memoria
 				destino (*dest), teniendo en cuenta que ambas posiciones de
 				memoria deben estar alineadas a word */
-extern void _gs_copiaMem(const void *source, void *dest, unsigned int numBytes);
-
+extern int _gs_copiaMem(const void *source, void *dest, unsigned int numBytes);
 
 
 

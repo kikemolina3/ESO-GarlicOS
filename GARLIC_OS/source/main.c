@@ -12,7 +12,6 @@
 
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
 
-
 /* Inicializaciones generales del sistema Garlic */
 //------------------------------------------------------------------------------
 void inicializarSistema() {
@@ -53,7 +52,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
-		/*start(1);*/		// llamada al proceso HOLA con argumento 1
+		start(1);		// llamada al proceso HOLA con argumento 1
 	} else
 		printf("*** Programa \"HOLA\" NO cargado\n");
 
