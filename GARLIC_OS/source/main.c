@@ -15,7 +15,7 @@
 int hola(int);				// función que simula la ejecución del proceso
 extern int prnt(int);		// otra función (externa) de test correspondiente
 							// a un proceso de usuario
-extern int ccdl(int);
+extern int ccdl(int);		// se agrega dicha función de prueba (E. Molina)
 
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
 
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 	_gg_escribir("*** Inicio fase 1_G\n", 0, 0, 0);
 	
 	_gd_pidz = 6;	// simular zócalo 6
-	ccdl(3);
+	ccdl(1);
 	
 	_gd_pidz = 7;	// simular zócalo 7
 	hola(2);     

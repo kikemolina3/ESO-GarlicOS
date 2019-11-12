@@ -122,16 +122,18 @@ _gg_desplazar:
 	mov r1,r0					@; @fuente ==> @destino
 	b .Lrepeat
 .Lfin_dma:	
-	add r1,r5					@; @ultima_linea, tratamiento rellanando posiciones con caracteres en blanco
+	sub r1,r5					@; @ultima_linea, tratamiento rellanando posiciones con caracteres en blanco
 	mov r5,#0					@; r5 = 0 = cont_posiciones
 	mov r6,#VCOLS				@; r6 = VCOLS
 	mov r7,#0					@; r7 = desplazamiento sobre ultima linea
+.Lrepeat2:
 	cmp r5,r6
 	beq .Lfin_ultima			@; si cont_posiciones==VCOLS, ACABA
 	mov r2,#0		
 	strh r2,[r1,r7]				@; escribe 0 (caracter blanco) en ultima linea
 	add r5,#1					@; cont_posiciones++
 	add r7,#2					@; incremento despl sobre fondo
+	b .Lrepeat2
 .Lfin_ultima:
 	pop {r0-r7,pc}
 

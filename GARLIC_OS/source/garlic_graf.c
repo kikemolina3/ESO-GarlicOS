@@ -269,12 +269,13 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		if(num_char==VCOLS)
 		{
 			swiWaitForVBlank();
-			if(fila_actual==VFILS-1)
+			if(fila_actual==VFILS)
 			{
 				_gg_desplazar(ventana);
+				fila_actual=VFILS-1;
 			}
 			_gg_escribirLinea(ventana, fila_actual, num_char);
-			if(fila_actual!=VFILS-1)
+			if(fila_actual!=VFILS)
 				fila_actual++;
 			num_char=0;
 			_gd_wbfs[ventana].pControl = 0;
