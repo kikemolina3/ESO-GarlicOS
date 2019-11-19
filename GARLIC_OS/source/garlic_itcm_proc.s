@@ -69,8 +69,27 @@ _gp_IntrMain:
 	@; se encarga de actualizar los tics, intercambiar procesos, etc.
 _gp_rsiVBL:
 	push {r4-r7, lr}
-
-
+	ldr r4, =_gd_tickCount			@; Se carga la dirección de memoria del contador de ticks.
+	ldr r5, [r4]					@; Se obtiene el valor del contador de ticks.
+	add r5, #1						@; Se incrementa una unidad el contador de tics.
+	str r5, [r4]					@; Se guarda de nuevo en memoria el nuevo valor del contador de tics.
+	ldr r4, =_gd_nReady				@; Se carga la dirección de memoria del número de procesos en la cola de Ready.
+	ldr r5, [r4]					@; Se obtiene el número de procesos de la cola de Ready.
+	cmp r5, #0						@; Si el número de procesos de la cola de Ready es 0...
+	beq .L_fi_rsiVBL				@; ...Se salta al final del programa.
+	ldr r6, =_gd_pidz				@; Se carga la dirección de memoria del identificador de proceso + zócalo.
+	ldr r7, [r6]					@; Se obtiene el identificador de proceso + zócalo.
+	cmp r7, #0						@; Si el identificador del proceso + zócalo corresponde al proceso del sistema operativo...
+	beq .L_salvar_contexto			@; ...Se salta al paso de salvar contexto.
+	mov r7, r7, lsr #4				@; Se eliminan los 4 bits correspondientes al zócalo.
+	cmp r7, #0						@; Si el identificador de proceso es 0 (el proceso ha terminado su ejecución)...
+	@; tst r7, #0xFFFFFFF0			@; Si el identificador de proceso es 0 (el proceso ha terminado su ejecución)...
+	beq .L_restaurar_contexto		@; ...Se salta al paso de restaurar contexto.
+.L_salvar_contexto:	
+	bl _gp_salvarProc				@; Se llama a la rutina para salvar el contexto del proceso actual.
+.L_restaurar_contexto:
+	bl _gp_restaurarProc			@; Se llama a la rutina para restaurar el contexto del primer proceso de la cola de Ready. 
+.L_fi_rsiVBL:
 	pop {r4-r7, pc}
 
 
