@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
-		/*start(0);*/		// llamada al proceso PRNT con argumento 0
+		start(0);		// llamada al proceso PRNT con argumento 0
 	} else
 		printf("*** Programa \"PRNT\" NO cargado\n");
 
