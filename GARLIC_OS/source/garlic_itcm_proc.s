@@ -125,19 +125,19 @@ _gp_salvarProc:
 	ldr r10, [r8, #56]			@; Se carga el valor del registro 12 del proceso antes de que este fuese desbancado
 	push {r10, lr}				@; Se apila el contenido del registro 12 y del registro de enlace den la pila del proceso.
 	mov r9, #12					@; R9 será el índice para acceder a la pila del proceso. 
-	mov r11, #0					@; R11 será el contador que permitirá controlar el bucle de apilado de los registros de trabajo.
-.Lbucle_salvarRegistros
+	mov r11, #0					@; R11 será el contador que permitirá controlar el número de iteraciones del bucle de apilado de los registros.
+.L_bucle_salvarRegistros:
 	ldr r10, [r8, r9]			@; Se obtiene el contenido de un registro de trabajo de la pila del modo IRQ...
 	push {r10}					@; ...y se apila en la pila del proceso (pila del modo sistema).
-	sub r9, #4					@; Se incrementa el índice de la pila.
+	sub r9, #4					@; Se decrementa el índice de la pila.
 	add r11, #1					@; Se incrementa el contador de control del bucle.
 							@; Los 12 registros del procesador están agrupados en la pila en 3 grupos de 4 registros por como se han ido almacenando en la ejecución de las distintas rutinas.
 	and r10, r11, #0x3			@; Se filtran los bits altos (se mantienen los 2 bits bajos) del contador de control del bucle.
-	cmp r10, #3					@; Se comprueba si el bucle ha realizado 4 iteraciones, es decir, si se ha almacenado un grupo de 4 regsitros. 
-	blo .Lbucle_salvarRegistros	@; Sino, se continúa ejecutando el bucle.
+	cmp r10, #3					@; Se comprueba si el bucle ha realizado 4 iteraciones, es decir, si se ha retirado un grupo de 4 regsitros de la pila del modo IRQ. 
+	blo .L_bucle_salvarRegistros	@; En caso contrario, se continúa ejecutando el bucle.
 	add r9, #32					@; Se incrementa el índice de la pila del proceso para apuntar a otro grupo de 4 registros.
-	cmp r11, #12				@; Se comprueba si se han hecho 12 iteraciones del bucle, es decir, si se han apilado los 12 registros más bajos.
-	blo .Lbucle_salvarRegistros	@; Sino, se continúa ejecutando el bucle.
+	cmp r11, #12				@; Se comprueba si se han hecho 12 iteraciones del bucle, es decir, si se han movido los 12 registros más bajos.
+	blo .L_bucle_salvarRegistros	@; En caso contrario, se continúa ejecutando el bucle.
 	ldr r9, [r6]				@; Se carga el contenido de la variable _gd_pidz.
 	and r9, #0xF				@; Se filtran los 28 bits correspondientes al identificador de proceso.
 	mov r10, #24				@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.						 					
@@ -158,8 +158,55 @@ _gp_salvarProc:
 	@; R6: dirección _gd_pidz
 _gp_restaurarProc:
 	push {r8-r11, lr}
-	
-	
+	sub r5, #1						@; Se decrementa el número de procesos en ready.
+	str r5, [r4]					@; Se almacena el nuevo valor del número de procesos de la cola de Ready en la posición de memoria correspondiente.
+	ldr r9, =_gd_qReady				@; Se carga la dirección de memoria de la cola de Ready.
+	ldrb r8, [r9]					@; Se carga el zócalo del proceso cuyo contexto se ha de restaurar. 
+	mov r10, #1						@; R10 contendrá el índice que permitirá el acceso a las distintas posiciones de la cola de Ready.
+.L_bucle_desplazarVector:
+	ldrb r11, [r9, r10]				@; Se carga el zócalo de un proceso.
+	sub r10, #1						@; Se decrementa una unidad el índice para apuntar a la posición anterior de la cola de Ready.
+	strb r11, [r9, r10]				@; Se almacena el zócalo cargado anteriormente en la posición anterior de la cola de Ready.
+	add r10, #2						@; Se incrementa el índice dos unidades. 
+	cmp r11, #16					@; Se comprueba si se ha llegado al final de la cola de Ready.
+	blo .L_bucle_desplazarVector	@; En caso contrario se continúan realizando iteraciones.
+	ldr r9, =_gd_pcbs				@; Se carga la dirección de memoria del vector de PCBs.
+	mov r10, #24					@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.
+	mul r10, r8, r10				@; Se calcula el índice para acceder al PID del proceso correspondiente al zócalo. El PID es el primer elemento almacenado en el PCB. 
+	ldr r11, [r9, r10]				@; Se carga el PID del proceso.
+	mov r11, r11, lsl #4			@; Se realiza un desplazamiento lógico de 4 bits para dejar espacio para el zócalo.
+	orr r8, r11						@; Se concatenan el PID y el zócalo para construir el valor PIDz.
+	str r8, [r6]					@; Se almacena el valor PIDz en la posición de memoria correspondiente a la etiqueta _gd_pidz.
+	add r10, #4						@; Se incrementa 4 unidades el índice del vector de PCBs para que apunte al campo en el que está almacenado el valor del PC.
+	ldr r11, [r9, r10]				@; Se carga el valor del PC del proceso que se quiere restaurar.			
+	str r11, [sp, #60]				@; Se almacena el valor del PC en la posición 60 de la pila del modo IRQ.
+	add r10, #8						@; Se incrementa 8 unidades el índice del vector de PCBs para que apunte al campo en el que está almacenada la palabra de estado del proceso. 
+	ldr r11, [r9, r10]				@; Se carga la palabra de estado del proceso que se quiere restaurar.
+	msr SPSR, r11					@; Se almacena la palabra de estado del proceso que se quiere restaurar en 
+	mov r8, sp						@; Se almacena el valor del SP del modo IRQ en R8.
+	mrs r11, CPSR					@; Se mueve el contenido del registro CPSR a R11 para poder manipular su contenido.
+	orr r11, #0x1F					@; Se modifican los bits de modo para pasar del modo IRQ al modo System.
+	msr CPSR, r11					@; Se actualiza el contenido del registro CPSR con el valor modificado.
+	sub r10, #4						@; Se decrementa 4 unidades el índice del vector de PCBs para que apunte al campo en el que está almacenado el valor del SP.
+	ldr sp, [r9, r10]				@; Se carga el valor del SP del proceso que se quiere restaurar.
+	mov r9, #40						@; R9 será el índice para acceder a la pila del modo IRQ.
+	mov r10, #0						@; R10 será el contador que permitirá controlar el número de iteraciones del bucle de desapilado de los registros.
+.L_bucle_restaurarRegistros:
+	pop {r11}						@; Se desapila uno de los registros de la pila del proceso.
+	str r11, [r8, r9]				@; Se almacena dicho registro en la posición correspondientes de la pila del modo IRQ.
+	add r9, #4						@; Se incrementa el índice de la pila.
+	add r10, #1						@; Se incrementa el contador del bucle.
+	and r11, r10, #0x3				@; Se filtran los bits altos (se mantienen los 2 bits bajos) del contador de control del bucle.
+	cmp r11, #3						@; Se comprueba si el bucle ha realizado 4 iteraciones, es decir, si se ha almacenado un grupo de 4 regsitros en la pila del modo IRQ.
+	blo .L_bucle_restaurarRegistros	@; En caso contrario, se continúa ejecutando el bucle.
+	sub r9, #32						@; Se decrementa el índice de la pila 32 unidades para apuntar a las posiciones en las que se almacenará un grupo de 4 registros. 
+	cmp r10, #12					@; Se comprueba si se han hecho 12 iteraciones del bucle, es decir, si se han movido los 12 registros más bajos.
+	blo .L_bucle_restaurarRegistros	@; En caso contrario, se continúa ejecutando el bucle.
+	pop {r11, r14}					@; Se desapila el registro 12 y el registro de enlace del proceso.
+	str r11, [r8, #56]				@; Se almacena el registro 12 en la posición correspondiente de la pila del modo IRQ.
+	mrs r11, CPSR					@; Se mueve el contenido del registro CPSR a R11 para poder manipular su contenido.
+	bic r11, #0x0D					@; Se modifican los bits de modo para pasar del modo System al modo IRQ.
+	msr CPSR, r11					@; Se actualiza el contenido del registro CPSR con el valor modificado.
 	pop {r8-r11, pc}
 
 
@@ -168,8 +215,7 @@ _gp_restaurarProc:
 	@; R0: número de procesos total
 _gp_numProc:
 	push {lr}
-
-
+	
 	pop {pc}
 
 
