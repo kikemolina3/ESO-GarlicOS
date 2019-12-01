@@ -75,16 +75,16 @@ _gp_rsiVBL:
 	str r5, [r4]					@; Se guarda de nuevo en memoria el nuevo valor del contador de tics.
 	ldr r4, =_gd_nReady				@; Se carga la dirección de memoria del número de procesos en la cola de Ready.
 	ldr r5, [r4]					@; Se obtiene el número de procesos de la cola de Ready.
-	cmp r5, #0						@; Si el número de procesos de la cola de Ready es 0...
-	beq .L_fi_rsiVBL				@; ...Se salta al final del programa.
+	cmp r5, #0						@; Si comprueba si el número de procesos de la cola de Ready es 0.
+	beq .L_fi_rsiVBL				@; En caso afirmativo, se salta al final del programa.
 	ldr r6, =_gd_pidz				@; Se carga la dirección de memoria del identificador de proceso + zócalo.
 	ldr r7, [r6]					@; Se obtiene el identificador de proceso + zócalo.
-	cmp r7, #0						@; Si el identificador del proceso + zócalo corresponde al proceso del sistema operativo...
-	beq .L_salvar_contexto			@; ...Se salta al paso de salvar contexto.
+	cmp r7, #0						@; Se comprueba si el PID + zócalo es 0 (si corresponde al proceso del sistema operativo).
+	beq .L_salvar_contexto			@; En caso afirmativo, se salta a la instrucción para salvar contexto.
 	mov r7, r7, lsr #4				@; Se eliminan los 4 bits correspondientes al zócalo.
-	cmp r7, #0						@; Si el identificador de proceso es 0 (el proceso ha terminado su ejecución)...
-	@; movs r7, r7, lsr #4
-	beq .L_restaurar_contexto		@; ...Se salta al paso de restaurar contexto.
+	cmp r7, #0						@; Se comprueba si el PID es 0 (si el proceso ha terminado su ejecución).
+	@; movs r7, r7, lsr #4			@; Se eliminan los 4 bits correspondientes al zócalo y se actualizan los flags para poder comprobar si el PID es 0 (si el proceso ha terminado su ejecución).
+	beq .L_restaurar_contexto		@; En caso afirmativo, se salta al paso de restaurar contexto.
 .L_salvar_contexto:	
 	bl _gp_salvarProc				@; Se llama a la rutina para salvar el contexto del proceso actual.
 .L_restaurar_contexto:
@@ -103,8 +103,6 @@ _gp_rsiVBL:
 	@; R5: nuevo número de procesos en READY (+1)
 _gp_salvarProc:
 	push {r8-r11, lr}
-	add r5, #1						@; Se incrementa el número de procesos en la cola de Ready.
-	str r5, [r4]					@; Se almacena el nuevo valor del número de procesos de la cola de Ready en la posición de memoria correspondiente.
 	mov r8, sp						@; Se almacena el valor del SP (dirección base de la pila) del modo IRQ en un registro de trabajo libre.
 	mrs r9, CPSR					@; Se traslada el contenido del registro CPSR a uno de los registros de trabajo.
 	orr r9, #0x1F					@; Se aplica una máscara para modificar los bits de modo, que pasarán de indicar el modo IRQ al modo System.
@@ -124,24 +122,25 @@ _gp_salvarProc:
 	ldr r11, [r8, #52]				@; Se carga el valor del registro 3 del proceso antes de que este fuese desbancado.
 	ldr r10, [r8, #48]				@; Se carga el valor del registro 2 del proceso antes de que este fuese desbancado.
 	ldr r9, [r8, #44]				@; Se carga el valor del registro 1 del proceso antes de que este fuese desbancado.
-	push {r9-r11}					@; Se apila los contenido del registro 1, 2 y 3 en la pila del proceso.
-	ldr r9, [r8, #40]				@; Se carga el valor del registro 0 del proceso antes de que este fuese desbancado.
-	push {r9}						@; Se apila el contenido del registro 0 en la pila del proceso.
-	ldrb r9, [r6]					@; Se carga el contenido de la variable _gd_pidz.
-	and r9, #0xF					@; Se filtran los 28 bits correspondientes al identificador de proceso.
-	mov r10, #24					@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.							 					
-	ldr r11, =_gd_pcbs				@; Se carga la dirección de memoria base del vector de PCBs.
-	mla r10, r9, r10, r11			@; Se obtiene la posición de la variable para almacenar el PC del PCB del proceso a desbancar en el vector de PCBs. Se multiplica el zócalo por 24 y se le suma 4.
-	str sp, [r10, #8]				@; Se almacena el valor del SP en la posición correspondiente del PCB correspondiente.
-	mrs r11, CPSR					@; Se traslada el contenido del registro CPSR a uno de los registros de trabajo.
-	bic r11, #0x0D					@; Se aplica una máscara para modificar los bits de modo, que pasarán de indicar el modo System al modo IRQ.			
-	msr CPSR, r11					@; Se restaura el contenido del registro CPSR. Se vuelve al modo IRQ.
-	ldr r8, [sp, #60]				@; Se carga el valor del PC del proceso antes de ser desbancado. Se encuentra en la posición 60 de la pila del modo IRQ.
-	str r8, [r10, #4]				@; Se almacena el valor del PC del proceso antes de ser desbancado en la posición correspondiente del PCB correspondiente.
-	mrs r8, SPSR					@; Se traslada el contenido del registro SPSR (el CPSR del proceso que se quiere desbancar) a uno de los registros de trabajo.					
-	str r8, [r10, #12]				@; Se almacena el contenido del registro CPSR del proceso antes de ser desbancado en es el quarto campo del PCB correspondiente.
-	ldr r8, =_gd_qReady				@; Se carga la dirección de memoria de la cola de Ready.
-	strb r9, [r8, #15]				@; Se almacena el zócalo del proceso a desbancar en la última posición de la cola de Ready.
+	ldr r8, [r8, #40]				@; Se carga el valor del registro 0 del proceso antes de que este fuese desbancado.
+	push {r8-r11}					@; Se apila los contenido de los registros 0, 1, 2 y 3 en la pila del proceso.
+	ldrb r8, [r6]					@; Se carga el contenido de la variable _gd_pidz.
+	and r8, #0xF					@; Se filtran los 28 bits correspondientes al identificador de proceso.
+	mov r9, #24						@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.							 					
+	ldr r10, =_gd_pcbs				@; Se carga la dirección de memoria base del vector de PCBs.
+	mla r9, r8, r9, r10				@; Se obtiene la posición de la variable para almacenar el PC del PCB del proceso a desbancar en el vector de PCBs. Se multiplica el zócalo por 24 y se le suma 4.
+	str sp, [r9, #8]				@; Se almacena el valor del SP en la posición correspondiente del PCB correspondiente.
+	mrs r10, CPSR					@; Se traslada el contenido del registro CPSR a uno de los registros de trabajo.
+	bic r10, #0x0D					@; Se aplica una máscara para modificar los bits de modo, que pasarán de indicar el modo System al modo IRQ.			
+	msr CPSR, r10					@; Se restaura el contenido del registro CPSR. Se vuelve al modo IRQ.
+	ldr r10, [sp, #60]				@; Se carga el valor del PC del proceso antes de ser desbancado. Se encuentra en la posición 60 de la pila del modo IRQ.
+	str r10, [r9, #4]				@; Se almacena el valor del PC del proceso antes de ser desbancado en la posición correspondiente del PCB correspondiente.
+	mrs r10, SPSR					@; Se traslada el contenido del registro SPSR (el CPSR del proceso que se quiere desbancar) a uno de los registros de trabajo.					
+	str r10, [r9, #12]				@; Se almacena el contenido del registro CPSR del proceso antes de ser desbancado en es el quarto campo del PCB correspondiente.
+	ldr r9, =_gd_qReady				@; Se carga la dirección de memoria de la cola de Ready.
+	strb r8, [r9, r5]				@; Se almacena el zócalo del proceso a desbancar en la última posición de la cola de Ready.
+	add r5, #1						@; Se incrementa el número de procesos en la cola de Ready.
+	str r5, [r4]					@; Se almacena el nuevo valor del número de procesos de la cola de Ready en la posición de memoria correspondiente.
 	pop {r8-r11, pc}
 
 
@@ -155,20 +154,15 @@ _gp_restaurarProc:
 	sub r5, #1						@; Se decrementa el número de procesos en ready.
 	str r5, [r4]					@; Se almacena el nuevo valor del número de procesos de la cola de Ready en la posición de memoria correspondiente.
 	ldr r9, =_gd_qReady				@; Se carga la dirección de memoria de la cola de Ready.
-	ldrb r8, [r9]					@; Se carga el zócalo del proceso cuyo contexto se ha de restaurar (primer proceso de la cola de Ready). 
-	ldr r11, =_gd_nReady			@; Se carga la dirección de memoria del número de procesos de la cola de Ready.
-	ldr r11, [r11]					@; Se carga el valor del número de procesos de la cola de ready. Será la variable de control del bucle.
-	sub r11, #1	
+	ldrb r8, [r9]					@; Se carga el zócalo del proceso cuyo contexto se ha de restaurar (primer proceso de la cola de Ready). 	
 .L_bucle_desplazarCola:
-	ldr r10, [r9, #1]				@; Se carga un zócalo de una posición de la cola de Ready. 
-	str r10, [r9]					@; Se almacena dicho zócalo en la posición anterior de la cola de Ready.
+	ldrb r10, [r9, #1]				@; Se carga un zócalo de una posición de la cola de Ready. 
+	strb r10, [r9]					@; Se almacena dicho zócalo en la posición anterior de la cola de Ready.
 	add r9, #1						@; Se incrementa el índice de la cola de Ready.
-	sub r11, #1						@; Se decrementa la variable de control del bucle. 
-	cmp r11, #0						@; Si la variable de control del bucle es 0...  
-	@; subs r11, #1					@; Se decrementa la variable de control del bucle. Si la variable de control del bucle es 0.
-	bhi .L_bucle_desplazarCola		@; ...ya se han desplazado todos los zócalos a las posiciones anteriores de la cola de Ready.
-	ldr r10, =_gd_pcbs				@; Se carga la dirección de memoria del vector de PCBs.
+	subs r5, #1						@; Se decrementa la variable de control del bucle y se actualizan los flags.
+	bhi .L_bucle_desplazarCola		@; A través de los flags, se comprueba si la variable de control del bucle es 0 (Ya se han desplazado todos los zócalos a las posiciones anteriores de la cola de Ready).
 	mov r9, #24						@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.
+	ldr r10, =_gd_pcbs				@; Se carga la dirección de memoria del vector de PCBs.
 	mla r9, r8, r9, r10				@; Se calcula el índice para acceder al PID del proceso correspondiente al zócalo. El PID es el primer campo del PCB. 
 	ldr r10, [r9]					@; Se carga el PID del proceso.
 	orr r8, r10, lsl #4				@; Se concatenan el PID y el zócalo para construir el valor PIDz.
@@ -197,7 +191,7 @@ _gp_restaurarProc:
 	pop {r9-r11}					@; Se desapila el contenido de los registros R9, R10 y R11 de la pila del proceso.
 	str r9, [r8, #4]				@; Se almacena el contenido del registro R0 en la pila del modo IRQ.
 	str r10, [r8, #8]				@; Se almacena el contenido del registro R1 en la pila del modo IRQ.
-	str r11, [r8, #48]				@; Se almacena el contenido del registro R2 la pila del modo IRQ.
+	str r11, [r8, #12]				@; Se almacena el contenido del registro R2 la pila del modo IRQ.
 	pop {r9, lr}					@; Se desapila el contenido de los registros R12 y LR de la pila del proceso.
 	str r9, [r8, #56]				@; Se almacena el contenido del registro R12 en la pila del modo IRQ.
 	mrs r10, CPSR					@; Se mueve el contenido del registro CPSR a R11 para poder manipular su contenido.
@@ -253,15 +247,15 @@ _gp_crearProc:
 	cmp r5, #4						@; Se comprueba si se han realizado todas las iteraciones necesarias para obtener los 4 primeros carácteres del nombre en clave del programa. 
 	blo .L_bucle_guardarNombre		@; Se realiza otra iteración del bucle de almacenamiento del nombre en clave. 
 	str r6, [r4, #16]				@; Se almacenan los 4 primeros carácteres del nombre en clave en el campo correspondiente del vector de PCBs.
-	@; mov r7, sp						@; Se salva el valor actual de la pila.
-	ldr r6, =_gd_stacks				@; Se carga la dirección base del vector de pilas.
-	mov r5, #512					@; Cada pila de proceso contiene 128 posiciones de memoria de 4 bytes cada una. En consecuqncia, el zócalo se debera multiplicar por 512 para acceder a la posición más baja de la pila.
-	mla sp, r1, r5, r6				@; Se multiplica el zócalo por el tamaño de una pila y se le suma la dirección base del vector de pilas para obtener la dirección base de la pila correspondiente al proceso que se quiere crear.
+	@; mov r7, sp					@; Se salva el valor actual de la pila.
+	ldr r5, =_gd_stacks				@; Se carga la dirección base del vector de pilas.
+	mov r6, #512					@; Cada pila de proceso contiene 128 posiciones de memoria de 4 bytes cada una. En consecuqncia, el zócalo se debera multiplicar por 512 para acceder a la posición más baja de la pila.
+	mla sp, r1, r6, r5				@; Se multiplica el zócalo por el tamaño de una pila y se le suma la dirección base del vector de pilas para obtener la dirección base de la pila correspondiente al proceso que se quiere crear.
 	ldr r5, =_gp_terminarProc		@; Se carga la dirección de inicio de la rutina _gp_terminarProc.
 	push {r5}						@; Se apila dicha dirección de memoria, de manera que al ser desapilada corresponda al registro de enlace del proceso. 
 	mov r5, #0						@; R6 contendrá un 0, que es el valor que debera apilarse en la pila en las posiciones correspondientes a los registros R1-R12.				
 	mov r6, #0						@; Se inicializa el índice para controlar del bucle de apilado de los registros. 
-L_bucle_apilarRegistros:
+.L_bucle_apilarRegistros:
 	push {r5}						@; Se apila un 0 en cada una de las posiciones de la pila.
 	add r6, #1						@; Se incrementa el índice de control del bucle.
 	cmp r6, #12						@; Se comprueba si se han realizado 12 iteraciones, es decir, si se han apilado todos los registros que al restaurarse deberán contener un 0.
@@ -278,7 +272,7 @@ L_bucle_apilarRegistros:
 	strb r1, [r4, r6]				@; Se almacena el zócalo del proceso creado en la última posición de la cola de Ready.
 	add r6, #1						@; Se incrementa el número de procesos en la cola de Ready.
 	str r6, [r5]					@; Se almacena el nuevo valor del número de procesos en la dirección de memoria correspondiente.
-	@; mov sp, r7						@; Se recupera el valor de la pila.
+	@; mov sp, r7					@; Se recupera el valor de la pila.
 .L_fin_crearProc:
 	pop {r4-r6, pc}
 
