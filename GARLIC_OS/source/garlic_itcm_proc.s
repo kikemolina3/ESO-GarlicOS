@@ -81,9 +81,7 @@ _gp_rsiVBL:
 	ldr r7, [r6]					@; Se obtiene el identificador de proceso + zócalo.
 	cmp r7, #0						@; Se comprueba si el PID + zócalo es 0 (si corresponde al proceso del sistema operativo).
 	beq .L_salvar_contexto			@; En caso afirmativo, se salta a la instrucción para salvar contexto.
-	mov r7, r7, lsr #4				@; Se eliminan los 4 bits correspondientes al zócalo.
-	cmp r7, #0						@; Se comprueba si el PID es 0 (si el proceso ha terminado su ejecución).
-	@; movs r7, r7, lsr #4			@; Se eliminan los 4 bits correspondientes al zócalo y se actualizan los flags para poder comprobar si el PID es 0 (si el proceso ha terminado su ejecución).
+	movs r7, r7, lsr #4				@; Se eliminan los 4 bits correspondientes al zócalo y se actualizan los flags para poder comprobar si el PID es 0 (si el proceso ha terminado su ejecución).
 	beq .L_restaurar_contexto		@; En caso afirmativo, se salta al paso de restaurar contexto.
 .L_salvar_contexto:	
 	bl _gp_salvarProc				@; Se llama a la rutina para salvar el contexto del proceso actual.
@@ -151,7 +149,7 @@ _gp_salvarProc:
 	@; R6: dirección _gd_pidz
 _gp_restaurarProc:
 	push {r8-r11, lr}
-	sub r5, #1						@; Se decrementa el número de procesos en ready.
+	sub r5, #1						@; Se decrementa el número de procesos en Ready.
 	str r5, [r4]					@; Se almacena el nuevo valor del número de procesos de la cola de Ready en la posición de memoria correspondiente.
 	ldr r9, =_gd_qReady				@; Se carga la dirección de memoria de la cola de Ready.
 	ldrb r8, [r9]					@; Se carga el zócalo del proceso cuyo contexto se ha de restaurar (primer proceso de la cola de Ready). 	
@@ -222,7 +220,7 @@ _gp_numProc:
 	@;Resultado
 	@; R0: 0 si no hay problema, >0 si no se puede crear el proceso
 _gp_crearProc:
-	push {r4-r6, lr}
+	push {r4-r7, lr}
 	cmp r1, #0						@; Se comprueba si el zócalo es 0, es decir, si corresponde al proceso del sistema operativo.  
 	beq .L_fin_crearProc			@; En caso afirmativo, se termina la ejecución de la rutina de creación de proceso.
 	ldr r5, =_gd_pcbs				@; Se carga la dirección de memoria del vector de PCBs.
@@ -247,7 +245,7 @@ _gp_crearProc:
 	cmp r5, #4						@; Se comprueba si se han realizado todas las iteraciones necesarias para obtener los 4 primeros carácteres del nombre en clave del programa. 
 	blo .L_bucle_guardarNombre		@; Se realiza otra iteración del bucle de almacenamiento del nombre en clave. 
 	str r6, [r4, #16]				@; Se almacenan los 4 primeros carácteres del nombre en clave en el campo correspondiente del vector de PCBs.
-	@; mov r7, sp					@; Se salva el valor actual de la pila.
+	mov r7, sp						@; Se salva el valor actual de la pila.
 	ldr r5, =_gd_stacks				@; Se carga la dirección base del vector de pilas.
 	mov r6, #512					@; Cada pila de proceso contiene 128 posiciones de memoria de 4 bytes cada una. En consecuqncia, el zócalo se debera multiplicar por 512 para acceder a la posición más baja de la pila.
 	mla sp, r1, r6, r5				@; Se multiplica el zócalo por el tamaño de una pila y se le suma la dirección base del vector de pilas para obtener la dirección base de la pila correspondiente al proceso que se quiere crear.
@@ -262,6 +260,7 @@ _gp_crearProc:
 	blo .L_bucle_apilarRegistros	@; En caso contrario, se continúan realizando iteraciones.
 	push {r3}						@; Se apila el valor del argumento en la posición que al desapilarse corresponderá a R0.
 	str sp, [r4, #8]				@; Se almacena el valor del top de la pila en el campo correspondiente del vector de PCBs.
+	mov sp, r7						@; Se recupera el valor de la pila.
 	mov r5, #0x0000001F				@; R6 contendrá el valor de la palabra de estado del procesador. Los flags estarán todos a 0, las interrupciones IRQ estarán habilitadas, el juego de instrucciones será ARM y los 4 bits de modo estarán a 1 para que la ejecución se realice en modo sistema. 
 	str r5, [r4, #12]				@; Se almacena el valor inicial de la palabra de estado del proceso en el campo correspondiente.
 	mov r5, #0						@; El contador de tics de trabajo se inicializará al valor 0.
@@ -272,9 +271,8 @@ _gp_crearProc:
 	strb r1, [r4, r6]				@; Se almacena el zócalo del proceso creado en la última posición de la cola de Ready.
 	add r6, #1						@; Se incrementa el número de procesos en la cola de Ready.
 	str r6, [r5]					@; Se almacena el nuevo valor del número de procesos en la dirección de memoria correspondiente.
-	@; mov sp, r7					@; Se recupera el valor de la pila.
 .L_fin_crearProc:
-	pop {r4-r6, pc}
+	pop {r4-r7, pc}
 
 
 	@; Rutina para terminar un proceso de usuario:

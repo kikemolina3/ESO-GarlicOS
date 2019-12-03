@@ -48,10 +48,10 @@ int main(int argc, char **argv) {
 	printf("*                              *");
 	printf("********************************");
 	printf("*** Inicio fase 1_P\n");
-	/*
+	
 	_gp_crearProc(hola, 7, "HOLA", 1);
 	_gp_crearProc(hola, 14, "HOLA", 2);
-	*/
+	
 	while (_gp_numProc() > 1) {
 		_gp_WaitForVBlank();
 		printf("*** Test %d:%d\n", _gd_tickCount, _gp_numProc());
