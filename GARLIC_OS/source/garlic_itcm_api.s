@@ -1,6 +1,6 @@
 @;==============================================================================
 @;
-@;	"garlic_itcm_api.s":	código de las rutinas del API de GARLIC 1.0
+@;	"garlic_itcm_api.s":	código de las rutinas del API de GARLIC 2.0
 @;							(ver "GARLIC_API.h" para descripción de las
 @;							 funciones correspondientes)
 @;
@@ -16,27 +16,27 @@
 	@;Resultado:
 	@; R0 = identificador del proceso actual
 _ga_pid:
-		push {r1, lr}
-		ldr r0, =_gd_pidz
-		ldr r1, [r0]			@; R1 = valor actual de PID + zócalo
-		mov r0, r1, lsr #0x4	@; R0 = PID del proceso actual
-		pop {r1, pc}
+	push {r1, lr}
+	ldr r0, =_gd_pidz
+	ldr r1, [r0]			@; R1 = valor actual de PID + zócalo
+	mov r0, r1, lsr #0x4	@; R0 = PID del proceso actual
+	pop {r1, pc}
 
 
 	.global _ga_random
 	@;Resultado:
 	@; R0 = valor aleatorio de 32 bits
 _ga_random:
-		push {r1-r5, lr}
-		ldr r0, =_gd_seed
-		ldr r1, [r0]			@; R1 = valor de semilla de números aleatorios
-		ldr r2, =0x0019660D
-		ldr r3, =0x3C6EF35F
-		umull r4, r5, r1, r2	@; R5:R4 = _gd_seed * 0x19660D
-		add r4, r3				@; R4 += 0x3C6EF35F
-		str r4, [r0]			@; guarda la nueva semilla (R4)
-		mov r0, r5				@; devuelve por R0 el valor aleatorio (R5)
-		pop {r1-r5, pc}
+	push {r1-r5, lr}
+	ldr r0, =_gd_seed
+	ldr r1, [r0]			@; R1 = valor de semilla de números aleatorios
+	ldr r2, =0x0019660D
+	ldr r3, =0x3C6EF35F
+	umull r4, r5, r1, r2	@; R5:R4 = _gd_seed * 0x19660D
+	add r4, r3				@; R4 += 0x3C6EF35F
+	str r4, [r0]			@; guarda la nueva semilla (R4)
+	mov r0, r5				@; devuelve por R0 el valor aleatorio (R5)
+	pop {r1-r5, pc}
 
 
 	.global _ga_divmod
@@ -98,10 +98,85 @@ _ga_printf:
 	ldr r4, =_gd_pidz		@; R4 = dirección _gd_pidz
 	ldr r3, [r4]
 	and r3, #0x3			@; R3 = ventana de salida (zócalo actual MOD 4)
-	push {r12}
-	bl printf				@; llamada de prueba
-	pop {r12}
+	bl _gg_escribir
 	pop {r4, pc}
+
+
+	.global _ga_printchar
+	@;Parámetros
+	@; R0: int vx
+	@; R1: int vy
+	@; R2: char c
+	@; R3: int color
+_ga_printchar:
+	push {r4, lr}
+	add r3, r2, #32			@; R3 = c + 32, se transforma el código de baldosa
+							@;	en código ASCII, para que _gg_escribir lo vuelva
+							@;	a transformar en código de baldosa; (R3 pierde
+							@;	el código de color que se pasa por parámetro,
+							@;	pero no importa porque el color no se utiliza)
+	mov r2, r1				@; R2 = vy
+	mov r1, r0				@; R1 = vx
+	ldr r4, =_gd_pidz
+	ldr r4, [r4]			@; R4 = _gd_pidz
+	ldr r0, =_gi_message	@; R0 = @ string para visualizar con _gg_escribir
+	strb r3, [r0, #22]		@; guardar codigo carácter en posición 22 del str.
+	and r3, r4, #0x3		@; R3 = número de ventana (num. zócalo % 4)
+	bl _gg_escribir
+	pop {r4, pc}
+
+_gi_message:
+	.asciz "print char (%d, %d) :  \n"
+
+	.align 2
+	.global _ga_printmat
+	@;Parámetros
+	@; R0: int vx
+	@; R1: int vy
+	@; R2: char *m[]
+	@; R3: int color
+_ga_printmat:
+	push {r4-r5, lr}
+	ldr r5, =_gd_pidz		@; R5 = dirección _gd_pidz
+	ldr r4, [r5]
+	and r4, #0xf			@; R4 = ventana de salida (zócalo actual)
+	push {r4}				@; pasar 4º parámetro (núm. ventana) por la pila
+	bl _gg_escribir
+	add sp, #4				@; eliminar 4º parámetro de la pila
+	pop {r4-r5, pc}
+
+
+	.global _ga_delay
+	@;Parámetros
+	@; R0: int nsec
+_ga_delay:
+	push {r2-r3, lr}
+	ldr r3, =_gd_pidz		@; R3 = dirección _gd_pidz
+	ldr r2, [r3]
+	and r2, #0xf			@; R2 = zócalo actual
+	cmp r0, #0
+	bhi .Ldelay1
+	bl _gp_WaitForVBlank	@; si nsec = 0, solo desbanca el proceso
+	b .Ldelay3				@; y salta al final de la rutina
+.Ldelay1:
+	cmp r0, #600
+	bls .Ldelay2
+	mov r0, #600			@; limitar el número de segundos a 600 (10 minutos)
+.Ldelay2:
+	@;bl _gp_retardarProc
+.Ldelay3:
+	pop {r2-r3, pc}
+
+
+	.global _ga_clear
+_ga_clear:
+	push {r0-r1, lr}
+	ldr r1, =_gd_pidz
+	ldr r0, [r1]
+	and r0, #0xf			@; R0 = zócalo actual
+	mov r1, #0				@; R1 = 0 -> 4 ventanas
+	bl _gs_borrarVentana
+	pop {r0-r1, pc}
 
 
 .end
