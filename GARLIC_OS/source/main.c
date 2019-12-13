@@ -12,7 +12,13 @@
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 
 #include <GARLIC_API.h>		// inclusión del API para simular un proceso
+
+#define MAX_MENSAJES 10
+#define MAX_MATRICES 4
+#define MAX_CODIGO 6
+
 int hola(int);				// función que simula la ejecución del proceso
+int xifa(int);
 
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
 
@@ -51,6 +57,8 @@ int main(int argc, char **argv) {
 	
 	_gp_crearProc(hola, 7, "HOLA", 1);
 	_gp_crearProc(hola, 14, "HOLA", 2);
+	//_gp_crearProc(xifa, 8, "XIFA", 0);
+	//_gp_crearProc(xifa, 9, "XIFA", 1);
 	
 	while (_gp_numProc() > 1) {
 		_gp_WaitForVBlank();
@@ -89,5 +97,45 @@ int hola(int arg) {
 	for (i = 0; i < iter; i++)		// escribir mensajes
 		GARLIC_printf("(%d)\t%d: Hello world!\n", GARLIC_pid(), i);
 
+	return 0;
+}
+
+int xifa(int arg) {
+	char * mensajes[MAX_MENSAJES] = { "hola",
+										"Todo bien",
+										"esta noche he quedado",
+										"ayer estudie mucho",
+										"el examen fue muy bien",
+										"me gusta mucho leer",
+										"me gusta mucho el cine",
+										"aprovare la asignatura",
+										"me aburro si no estudio",
+										"se me rompio el ordenador" };
+	char * matrices_cifrado[MAX_MATRICES] = { "0fqbizw1xm8ern2gtskpu3jdo7hy4v9cl6a5",
+											"til6b2ugdm4rqvkfy5nspc8z37ohj9wa1ex0",
+											"147regimntabcdfhjklopqsuvwxyz0235689",
+											"8p3dln1t4oah7kbc5zju6wgmxsvir29ey0fq" };
+	char codigo[MAX_CODIGO] = { "ADFGVX" };
+	char mensaje_cifrado[42];
+	unsigned int pos, quo, mod, i, j, k;
+	
+	GARLIC_divmod(GARLIC_random(), MAX_MENSAJES, &quo, &pos);
+	for (; pos < MAX_MENSAJES; pos++) {
+		i = 0;
+		k = 0;
+		while (mensajes[pos][i] != '\0') {
+			j = 0;
+			while ((mensajes[pos][i] != matrices_cifrado[arg][j]) && (matrices_cifrado[arg][j] != '\0')) {
+				j++;
+			}
+			if (mensajes[pos][i] == matrices_cifrado[arg][j]) {
+				GARLIC_divmod(j, MAX_CODIGO, &quo, &mod);
+				mensaje_cifrado[k++]=codigo[mod];
+				mensaje_cifrado[k++]=codigo[quo];
+			}
+			i++;
+		}
+		GARLIC_printf("PID (%d)\t%s\n", GARLIC_pid(), mensaje_cifrado);
+	}
 	return 0;
 }
