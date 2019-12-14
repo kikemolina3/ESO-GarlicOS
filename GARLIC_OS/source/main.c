@@ -56,9 +56,10 @@ int main(int argc, char **argv) {
 	printf("*** Inicio fase 1_P\n");
 	
 	_gp_crearProc(hola, 7, "HOLA", 1);
-	//_gp_crearProc(hola, 14, "HOLA", 2);
+	_gp_crearProc(hola, 9, "HOLA", 2);
 	_gp_crearProc(xifa, 8, "XIFA", 0);
-	//_gp_crearProc(xifa, 9, "XIFA", 1);
+	_gp_crearProc(xifa, 15, "XIFA", 0);
+	
 	
 	while (_gp_numProc() > 1) {
 		_gp_WaitForVBlank();

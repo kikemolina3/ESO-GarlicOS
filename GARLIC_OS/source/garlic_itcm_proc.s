@@ -202,11 +202,11 @@ _gp_restaurarProc:
 	@;Resultado
 	@; R0: número de procesos total
 _gp_numProc:
-	push {lr}
-	ldr r0, =_gd_nReady			@; Se carga la dirección de memoria del número de procesos de la cola de Ready.
-	ldr r0, [r0]				@; Se carga el número de procesos de la cola de Ready.
+	push {r1, lr}
+	ldr r1, =_gd_nReady			@; Se carga la dirección de memoria del número de procesos de la cola de Ready.
+	ldr r0, [r1]				@; Se carga el número de procesos de la cola de Ready.
 	add r0, #1					@; Se suma el proceso de la cola de Run para obtener el número total de procesos del sistema.
-	pop {pc}
+	pop {r1, pc}
 
 
 	.global _gp_crearProc
@@ -238,9 +238,9 @@ _gp_crearProc:
 	str r0, [r4, #4]				@; Se almacena la dirección base de la primera rutina del proceso en el campo del PCB correspondiente al PC.
 	ldrb r6, [r2]					@; Se carga uno de los cuatro primeros carácteres del nombre en clave del programa.
 	mov r5, #1						@; Se inicializa el índice para controlar el bucle de obtención de los cuatro primeros carácteres del nombre en clave del programa.
-.L_bucle_guardarNombre:
-	mov r6, r6, lsl #8				@; Se realiza un desplazamiento lógico de 8 bits a la izquierda para dejar hueco para el siguiente carácter del nombre en clave.
-	ldrb r6, [r2, r5]				@; Se carga uno de los cuatro primeros carácteres del nombre en clave del programa.
+.L_bucle_guardarNombre:			
+	ldrb r7, [r2, r5]				@; Se carga uno de los cuatro primeros carácteres del nombre en clave del programa.
+	orr r6, r7, r6, lsl #8			@; Se realiza un desplazamiento lógico de 8 bits a la izquierda para dejar hueco para el siguiente carácter del nombre en clave.
 	add r5, #1						@; Se incremente el índice de control del bucle.
 	cmp r5, #4						@; Se comprueba si se han realizado todas las iteraciones necesarias para obtener los 4 primeros carácteres del nombre en clave del programa. 
 	blo .L_bucle_guardarNombre		@; Se realiza otra iteración del bucle de almacenamiento del nombre en clave. 
