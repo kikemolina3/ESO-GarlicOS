@@ -56,8 +56,8 @@ int main(int argc, char **argv) {
 	printf("*** Inicio fase 1_P\n");
 	
 	_gp_crearProc(hola, 7, "HOLA", 1);
-	_gp_crearProc(hola, 14, "HOLA", 2);
-	//_gp_crearProc(xifa, 8, "XIFA", 0);
+	//_gp_crearProc(hola, 14, "HOLA", 2);
+	_gp_crearProc(xifa, 8, "XIFA", 0);
 	//_gp_crearProc(xifa, 9, "XIFA", 1);
 	
 	while (_gp_numProc() > 1) {
@@ -104,11 +104,11 @@ int xifa(int arg) {
 	char * mensajes[MAX_MENSAJES] = { "hola",
 										"Todo bien",
 										"esta noche he quedado",
-										"ayer estudie mucho",
+										"ayer estudie 8 horas",
 										"el examen fue muy bien",
 										"me gusta mucho leer",
-										"me gusta mucho el cine",
-										"aprovare la asignatura",
+										"quiero ir a ver 1917",
+										"estamos casi en 2020",
 										"me aburro si no estudio",
 										"se me rompio el ordenador" };
 	char * matrices_cifrado[MAX_MATRICES] = { "0fqbizw1xm8ern2gtskpu3jdo7hy4v9cl6a5",
@@ -130,8 +130,8 @@ int xifa(int arg) {
 			}
 			if (mensajes[pos][i] == matrices_cifrado[arg][j]) {
 				GARLIC_divmod(j, MAX_CODIGO, &quo, &mod);
-				mensaje_cifrado[k++]=codigo[mod];
-				mensaje_cifrado[k++]=codigo[quo];
+				mensaje_cifrado[k++] = codigo[mod];
+				mensaje_cifrado[k++] = codigo[quo];
 			}
 			i++;
 		}
