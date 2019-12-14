@@ -202,11 +202,11 @@ _gp_restaurarProc:
 	@;Resultado
 	@; R0: número de procesos total
 _gp_numProc:
-	push {r1, lr}
-	ldr r1, =_gd_nReady			@; Se carga la dirección de memoria del número de procesos de la cola de Ready.
-	ldr r0, [r1]				@; Se carga el número de procesos de la cola de Ready.
+	push {lr}
+	ldr r0, =_gd_nReady			@; Se carga la dirección de memoria del número de procesos de la cola de Ready.
+	ldr r0, [r0]				@; Se carga el número de procesos de la cola de Ready.
 	add r0, #1					@; Se suma el proceso de la cola de Run para obtener el número total de procesos del sistema.
-	pop {r1, pc}
+	pop {pc}
 
 
 	.global _gp_crearProc
@@ -251,7 +251,7 @@ _gp_crearProc:
 	mla sp, r1, r6, r5				@; Se multiplica el zócalo por el tamaño de una pila y se le suma la dirección base del vector de pilas para obtener la dirección base de la pila correspondiente al proceso que se quiere crear.
 	ldr r5, =_gp_terminarProc		@; Se carga la dirección de inicio de la rutina _gp_terminarProc.
 	push {r5}						@; Se apila dicha dirección de memoria, de manera que al ser desapilada corresponda al registro de enlace del proceso. 
-	mov r5, #0						@; R6 contendrá un 0, que es el valor que debera apilarse en la pila en las posiciones correspondientes a los registros R1-R12.				
+	mov r5, #0						@; R5 contendrá un 0, que es el valor que debera apilarse en la pila en las posiciones correspondientes a los registros R1-R12.				
 	mov r6, #0						@; Se inicializa el índice para controlar del bucle de apilado de los registros. 
 .L_bucle_apilarRegistros:
 	push {r5}						@; Se apila un 0 en cada una de las posiciones de la pila.
@@ -261,7 +261,7 @@ _gp_crearProc:
 	push {r3}						@; Se apila el valor del argumento en la posición que al desapilarse corresponderá a R0.
 	str sp, [r4, #8]				@; Se almacena el valor del top de la pila en el campo correspondiente del vector de PCBs.
 	mov sp, r7						@; Se recupera el valor de la pila.
-	mov r5, #0x0000001F				@; R6 contendrá el valor de la palabra de estado del procesador. Los flags estarán todos a 0, las interrupciones IRQ estarán habilitadas, el juego de instrucciones será ARM y los 4 bits de modo estarán a 1 para que la ejecución se realice en modo sistema. 
+	mov r5, #0x1F					@; R6 contendrá el valor de la palabra de estado del procesador. Los flags estarán todos a 0, las interrupciones IRQ estarán habilitadas, el juego de instrucciones será ARM y los 4 bits de modo estarán a 1 para que la ejecución se realice en modo sistema. 
 	str r5, [r4, #12]				@; Se almacena el valor inicial de la palabra de estado del proceso en el campo correspondiente.
 	mov r5, #0						@; El contador de tics de trabajo se inicializará al valor 0.
 	str r5, [r4, #20]				@; Se almacenará el valor incial del contador de tics de trabajo en el campo correspondiente del vector de PCBs.
