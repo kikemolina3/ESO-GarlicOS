@@ -268,7 +268,7 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		}
 		if(num_char==VCOLS)
 		{
-			swiWaitForVBlank();
+			_gp_WaitForVBlank();
 			if(fila_actual==VFILS)
 			{
 				_gg_desplazar(ventana);
