@@ -85,7 +85,6 @@ _gp_rsiVBL:
 	beq .L_restaurar_contexto		@; En caso afirmativo, se salta al paso de restaurar contexto.
 .L_salvar_contexto:	
 	bl _gp_salvarProc				@; Se llama a la rutina para salvar el contexto del proceso actual.
-	str r5, [r4]					@; Se almacena el nuevo valor del número de procesos de la cola de Ready en la posición de memoria correspondiente.
 .L_restaurar_contexto:
 	bl _gp_restaurarProc			@; Se llama a la rutina para restaurar el contexto del primer proceso de la cola de Ready. 
 .L_fi_rsiVBL:
@@ -139,6 +138,7 @@ _gp_salvarProc:
 	ldr r9, =_gd_qReady				@; Se carga la dirección de memoria de la cola de Ready.
 	strb r8, [r9, r5]				@; Se almacena el zócalo del proceso a desbancar en la última posición de la cola de Ready.
 	add r5, #1						@; Se incrementa el número de procesos en la cola de Ready.
+	str r5, [r4]					@; Se almacena el nuevo valor del número de procesos de la cola de Ready en la posición de memoria correspondiente.
 	pop {r8-r11, pc}
 
 
