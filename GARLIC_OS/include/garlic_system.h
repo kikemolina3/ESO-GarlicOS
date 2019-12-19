@@ -309,7 +309,7 @@ extern void _gg_desplazar(int v);
 */
 extern void _gg_escribirCar(int vx, int vy, char c, int color, int ventana);
 
-
+extern void _gg_fijarBaldosa(unsigned int base, unsigned int despl, unsigned int num);
 /* _gg_escribirMat: escribe una matriz de 8x8 carácteres a partir de una
 				posición de la ventana indicada, con un color concreto;
 	Parámetros:

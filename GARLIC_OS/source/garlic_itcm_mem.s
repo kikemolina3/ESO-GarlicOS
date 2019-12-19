@@ -33,16 +33,17 @@ _gm_zocMem:	.space NUM_FRANJAS			@; vector de ocupación de franjas mem.
 	@;Parámetros:
 	@; R0: dirección inicial del buffer de fichero (char *fileBuf)
 	@; R1: dirección de inicio de segmento de código (unsigned int pAddr_code)
+
 	@; R2: dirección de destino en la memoria (unsigned int *dest_code)
 	@; R3: dirección de inicio de segmento de datos (unsigned int pAddr_data)
 	@; (pila): dirección de destino en la memoria (unsigned int *dest_data)
 	@;Resultado:
 	@; cambio de las direcciones de memoria que se tienen que ajustar
 _gm_reubicar:
-	push {lr}
 	push {r0-r9,lr}
 	ldr r3,[r0,#32]		@;Cargamos en r3 header.e_shoff
 	add r4, r0, r3		@;Cargamos en r4 la direccion de memoria del primer byte de la tabla de secciones
+	mov r3,#0
 	ldrh r5,[r0,#48] 	@;Cargamos en r5 el num de secciones
 	ldrh r6,[r0,#46]	@;Cargamos en r6 el tamaño de cada seccion
 	mov r7,#0
@@ -51,6 +52,7 @@ _gm_reubicar:
 	ldr r9,[r8,#4]		@;Cargamos en r9 tipo de seccion
 	cmp r9,#9
 	bne .LNoSeccionRel
+	add r3,#1
 	ldr r10,[r8,#16]	@;Cargamos en r10 el offset de los relocs
 	add r10, r0, r10
 	ldr r11,[r8,#20]	@;Cargamos en r11 el tamaño de la seccion
@@ -74,12 +76,20 @@ _gm_reubicar:
 	cmp r10,r11
 	blt .LRecorrerSeccion
 .LNoSeccionRel:
+	cmp r3,#1
+	beq .LCogerDir
 	add r7,#1
 	cmp r7,r5
 	blt .LRecorrerSecciones
-	pop {r0-r9,pc}
-
-	pop {pc}
+	b .LFi
+.LCogerDir:
+	pop {r1,r2}
+	add r7,#1
+	cmp r7,r5
+	blt .LRecorrerSecciones
+.LFi:
+	mov r3,r1
+	pop {r0-r2,r4-r9,pc}
 
 
 	.global _gm_reservarMem
@@ -99,10 +109,48 @@ _gm_reubicar:
 	@;Resultado:
 	@;	R0: dirección inicial de memoria reservada (0 si no es posible)
 _gm_reservarMem:
-	push {lr}
-	
+	push {r1-r8,lr}
+	mov r3,#0
+	mov r4,r1
+.LFor:				@;Buscamos cuantos bloques del vector se necesitan
+	sub r4,#32
+	add r3,#1
+	cmp r4,#0
+	bgt .LFor
 
-	pop {pc}
+	ldr r4,=_gm_zocMem
+	mov r5,#0		@;contador de franjas (r5<768)
+	mov r6,#0		@;contador de franjas libres 
+.LPerFranja:
+	ldr r7,[r4,r5,lsr#2]
+	cmp r7,#0
+	addeq r6,#1
+	movne r6,#0
+	cmp r6,#1		@;Si trobem primera posicio lliure guardem adresa
+	moveq r8,r5,lsr#2	
+	cmp r6,r3		@;Si trobem espai suficientment gran
+	beq .LCompruebaEspacio
+	add r5,#1
+	cmp r5,#NUM_FRANJAS
+	blt .LPerFranja
+	mov r8,#0
+.LCompruebaEspacio:
+	cmp r8,#0
+	beq .LFin
+	mov r5,#0
+	ldr r6,=INI_MEM_PROC
+	ldr r7,[r6]
+	mov r6,r8
+	add r6,r7
+.LIntroduceFranja:
+	str r0,[r8,r5,lsr#2]
+	add r5,#1
+	cmp r5,r3
+	blt .LIntroduceFranja
+	mov r8,r6
+.LFin:
+	mov r0,r8
+	pop {r1-r8,pc}
 
 
 	.global _gm_liberarMem

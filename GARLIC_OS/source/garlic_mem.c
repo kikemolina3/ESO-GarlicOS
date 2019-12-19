@@ -16,7 +16,6 @@
 
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
 #define EI_NIDENT 16
-int punteroLibre=INI_MEM;		// direccion de memoria a primera pos. libre 
 
 //* ESTRUCTURAS PARA MANEJAR LA GESTION DE MEMORIA *//
 
@@ -137,9 +136,10 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 {
 	FILE* prog;
 	Elf32_Ehdr header;
-	Elf32_Phdr segment;
-	int *buffAux,size,*puntero,pos,numSeg;
+	Elf32_Phdr *segment;
+	int *buffAux,size,puntero[2],pos,numSeg=0,hay_espacio=1;
 	char path[21]="/Programas/";
+	unsigned char ph_type;
 	header.e_entry=0;
     strcat(path, keyName);
 	strcat(path, ".elf");
@@ -159,47 +159,65 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 		header.e_entry= buffAux[6];
 		header.e_phoff= buffAux[7];
 		header.e_shoff= buffAux[8];
-		header.e_phentsize= buffAux[10] && 0xF0;
-		header.e_phnum= buffAux[11] && 0x0F;
+		header.e_phentsize= buffAux[10] & 0xF0;
+		header.e_phnum= buffAux[11] & 0x0F;
 		header.e_shentsize= buffAux[7] ;
-		header.e_shnum= buffAux[12] && 0x0F;
-		puntero=malloc(header.e_phnum*sizeof(int));
+		header.e_shnum= buffAux[12] & 0x0F;
 		
+		
+		segment= malloc(header.e_phentsize*header.e_phnum);
 		//Recorremos los segmentos y cargamos los tipos LOAD
-		for(numSeg=0;numSeg<header.e_phnum;numSeg++){
+		while((numSeg<header.e_phnum) && (hay_espacio)){
 			pos=(header.e_phoff/4)+(numSeg*header.e_phentsize);
-			segment.p_type= buffAux[pos];
-			if(segment.p_type==1){
+			segment[numSeg].p_type= buffAux[pos];
+			if(segment[numSeg].p_type==1){
 				//printf("Hay segmento a cargar en memoria\n");
 				
 				//Cogemos datos del segmento 
-				segment.p_offset=buffAux[pos+1];
-				segment.p_paddr=buffAux[pos+3];
-				segment.p_filesz=buffAux[pos+4];
-				segment.p_memsz=buffAux[pos+5];
-				segment.p_flags=buffAux[pos+6];
+				segment[numSeg].p_offset=buffAux[pos+1];
+				segment[numSeg].p_paddr=buffAux[pos+3];
+				segment[numSeg].p_filesz=buffAux[pos+4];
+				segment[numSeg].p_memsz=buffAux[pos+5];
+				segment[numSeg].p_flags=buffAux[pos+6];
 				
-				//Cargamos en memoria el segmento
-				puntero[numSeg]=punteroLibre;
-				//printf("%i",puntero);
-				if(numSeg==0){
-				header.e_entry=puntero[numSeg];
-				//printf("%li\n",header.e_entry);
+				if(segment[numSeg].p_flags == 5){
+					ph_type=0;
+				}else{
+					ph_type=1;
 				}
-				segment.p_offset +=(int) buffAux;
-				_gs_copiaMem((const void *)segment.p_offset,(void *) puntero[numSeg],segment.p_filesz);
-				punteroLibre+=segment.p_memsz;
-				while(punteroLibre%4!=0){
-					punteroLibre+=1;
+				//Reservamos memoria
+				puntero[numSeg]=(int) _gm_reservarMem(zocalo,segment[numSeg].p_memsz,ph_type);
+				printf("%i",puntero[numSeg]);
+				if(puntero[numSeg] != 0) //HAY ESPACIO
+				{
+					if(segment[numSeg].p_flags == 5){	//SI ES DE CODIGO GUARDAMOS DIR INICIAL
+						header.e_entry=puntero[numSeg];
+					}
+					segment[numSeg].p_offset +=(int) buffAux;
+					_gs_copiaMem((const void *)segment[numSeg].p_offset,(void *) puntero[numSeg],segment[numSeg].p_filesz);
+					
+				}else{
+					hay_espacio=0;
+					header.e_entry=0;
 				}
-				//Reubicamos las posiciones sensibles
-				_gm_reubicar((char*)buffAux,(unsigned int)segment.p_paddr,(unsigned int *) puntero[numSeg],0,0);
 				
 			}
+			
+			
+			numSeg++;
 		}
 		
+		
+		if(hay_espacio)
+		{
+			if(header.e_phnum==1){
+					_gm_reubicar((char*)buffAux,(unsigned int)segment[0].p_paddr,(unsigned int *) puntero[0],0,0);
+			}else{
+					_gm_reubicar((char*)buffAux,(unsigned int)segment[0].p_paddr,(unsigned int *) puntero[0],(unsigned int ) segment[1].p_paddr,(unsigned int *) puntero[1]);
+			}
+		}
 		free(buffAux);
-		free(puntero);
+		//free(puntero);
 	}
 	
 	return ((intFunc) header.e_entry);
