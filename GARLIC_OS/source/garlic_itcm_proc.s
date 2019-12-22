@@ -236,19 +236,11 @@ _gp_crearProc:
 	str r6, [r4]					@; Se almacena el nuevo valor del PID del proceso a crear en el campo correspondiente del PCB correspondiente.
 	add r0, #4						@; Se incrementa una instrucción la dirección base de la primera rutina del proceso (valor inicial del PC). Esto se hace para compensar el decremento automático que se producirá debido al funcionamiento del código de la BIOS IRQ Exception Handler cuando se restaure el proceso por primera vez.
 	str r0, [r4, #4]				@; Se almacena la dirección base de la primera rutina del proceso en el campo del PCB correspondiente al PC.
-	ldrb r6, [r2]					@; Se carga uno de los cuatro primeros carácteres del nombre en clave del programa.
-	mov r5, #1						@; Se inicializa el índice para controlar el bucle de obtención de los cuatro primeros carácteres del nombre en clave del programa.
-.L_bucle_guardarNombre:			
-	ldrb r7, [r2, r5]				@; Se carga uno de los cuatro primeros carácteres del nombre en clave del programa.
-	orr r6, r7, r6, lsl #8			@; Se realiza un desplazamiento lógico de 8 bits a la izquierda para dejar hueco para el siguiente carácter del nombre en clave.
-	add r5, #1						@; Se incremente el índice de control del bucle.
-	cmp r5, #4						@; Se comprueba si se han realizado todas las iteraciones necesarias para obtener los 4 primeros carácteres del nombre en clave del programa. 
-	blo .L_bucle_guardarNombre		@; Se realiza otra iteración del bucle de almacenamiento del nombre en clave. 
-	str r6, [r4, #16]				@; Se almacenan los 4 primeros carácteres del nombre en clave en el campo correspondiente del vector de PCBs.
+	ldr r5, [r2]					@; Se cargan los 4 primeros carácteres del nombre en clave del programa.
+	str r5, [r4, #16]				@; Se almacenan los 4 primeros carácteres del nombre en clave en el campo correspondiente del vector de PCBs.
 	mov r7, sp						@; Se salva el valor actual de la pila.
 	ldr r5, =_gd_stacks				@; Se carga la dirección base del vector de pilas.
-	mov r6, #512					@; Cada pila de proceso contiene 128 posiciones de memoria de 4 bytes cada una. En consecuqncia, el zócalo se debera multiplicar por 512 para acceder a la posición más baja de la pila.
-	mla sp, r1, r6, r5				@; Se multiplica el zócalo por el tamaño de una pila y se le suma la dirección base del vector de pilas para obtener la dirección base de la pila correspondiente al proceso que se quiere crear.
+	add sp, r5, r1, lsl #9			@; Se multiplica el zócalo por el tamaño de una pila y se le suma la dirección base del vector de pilas para obtener la dirección base de la pila correspondiente al proceso que se quiere crear.		
 	ldr r5, =_gp_terminarProc		@; Se carga la dirección de inicio de la rutina _gp_terminarProc.
 	push {r5}						@; Se apila dicha dirección de memoria, de manera que al ser desapilada corresponda al registro de enlace del proceso. 
 	mov r5, #0						@; R5 contendrá un 0, que es el valor que debera apilarse en la pila en las posiciones correspondientes a los registros R1-R12.				
