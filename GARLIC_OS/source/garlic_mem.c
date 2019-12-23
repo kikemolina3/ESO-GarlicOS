@@ -108,7 +108,6 @@ intFunc _gm_cargarPrograma(char *keyName)
 	if(prog){
 		fseek(prog,0,SEEK_END);
 		size=ftell(prog);
-		//printf("%i\n",size);
 		buffAux=malloc(size);
 		fseek(prog,0,SEEK_SET);
 		fread(buffAux,1,size,prog);
@@ -129,7 +128,6 @@ intFunc _gm_cargarPrograma(char *keyName)
 			pos=(header.e_phoff/4)+(numSeg*header.e_phentsize);
 			segment.p_type= buffAux[pos];
 			if(segment.p_type==1){
-				//printf("Hay segmento a cargar en memoria\n");
 				
 				//Cogemos datos del segmento 
 				segment.p_offset=buffAux[pos+1];
@@ -140,10 +138,8 @@ intFunc _gm_cargarPrograma(char *keyName)
 				
 				//Cargamos en memoria el segmento
 				puntero[numSeg]=punteroLibre;
-				//printf("%i",puntero);
 				if(numSeg==0){
 				header.e_entry=puntero[numSeg];
-				//printf("%li\n",header.e_entry);
 				}
 				segment.p_offset +=(int) buffAux;
 				_gs_copiaMem((const void *)segment.p_offset,(void *) puntero[numSeg],segment.p_filesz);

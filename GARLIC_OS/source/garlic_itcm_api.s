@@ -10,7 +10,7 @@
 
 	.arm
 	.align 2
-
+	
 
 	.global _ga_pid
 	@;Resultado:
@@ -98,8 +98,9 @@ _ga_printf:
 	ldr r4, =_gd_pidz		@; R4 = dirección _gd_pidz
 	ldr r3, [r4]
 	and r3, #0x3			@; R3 = ventana de salida (zócalo actual MOD 4)
+	bl _gp_WaitForVBlank
 	push {r12}
-	bl printf				@; llamada de prueba
+	bl _gg_escribir				@; llamada de prueba
 	pop {r12}
 	pop {r4, pc}
 

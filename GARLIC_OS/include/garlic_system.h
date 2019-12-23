@@ -194,6 +194,8 @@ extern void _gg_escribirLinea(int v, int f, int n);
 */
 extern void _gg_desplazar(int v);
 
+extern void _gg_fijarBaldosa(int a, int b, int c);
+
 
 
 //------------------------------------------------------------------------------
