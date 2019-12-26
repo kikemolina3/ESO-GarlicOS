@@ -22,10 +22,10 @@ int alea(int a)
 int raiz(int a)
 {
 	int i;
-	float x = a;
+	unsigned int x = a, res;
 	for(i = 0; i < 10; i++)
-		x = (x*x + a) / (2*x);
-	return (int)x;
+		GARLIC_divmod(x*x + a, 2*x, &x, &res); 
+	return x;
 	
 }
 /*
