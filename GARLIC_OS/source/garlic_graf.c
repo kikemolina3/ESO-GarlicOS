@@ -17,12 +17,13 @@
 #define VFILS 24
 #define PCOLS VCOLS * PPART // número de columnas totales
 #define PFILS VFILS * PPART // número de filas totales
+#define BASE 0x06002000
 
 
 /* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro */
 void _gg_generarMarco(int v)
 {
-	unsigned int coc, res, base=0x06005000;
+	unsigned int coc, res, base=0x06004000;
 	int i;
 	coc=v/PPART;
 	res=v%PPART;
@@ -75,7 +76,7 @@ void _gg_iniGrafA()
 	videoSetMode(MODE_5_2D);
 	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
 	bg2 = bgInit(2, BgType_ExRotation, BgSize_ER_512x512, 4, 0);
-	bg3 = bgInit(3, BgType_ExRotation, BgSize_ER_512x512, 10, 0);
+	bg3 = bgInit(3, BgType_ExRotation, BgSize_ER_512x512, 8, 0);
 	bgSetPriority(bg2, 1);
 	bgSetPriority(bg3, 0);
 	decompress(garlic_fontTiles, bgGetGfxPtr(bg2), LZ77Vram);

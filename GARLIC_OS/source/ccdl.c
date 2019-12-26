@@ -12,8 +12,8 @@
 */
 int alea(int a)
 {
-	unsigned int coc,res;
-	GARLIC_divmod(GARLIC_random(),a+1,&coc,&res);
+	unsigned int coc, res;
+	GARLIC_divmod(GARLIC_random(), a+1 ,&coc ,&res);
 	return res;
 }
 /*
@@ -22,11 +22,11 @@ int alea(int a)
 int raiz(int a)
 {
 	int i;
-	float x=a;
-	for(i=0;i<10;i++)
-		x=(x*x+a)/(2*x);
-	a=(int)x;
-	return a;
+	float x = a;
+	for(i = 0; i < 10; i++)
+		x = (x*x + a) / (2*x);
+	return (int)x;
+	
 }
 /*
 //Función que retorna el resultado de a elevado a b//
@@ -34,11 +34,9 @@ int raiz(int a)
 int pot(int a, int b)
 {
 	int i;
-	int x=a;
-	for(i=0;i<b-1;i++)
+	int x = 1;
+	for(i=0;i<b;i++)
 		x *= a;
-	if(b==0)
-		x=1;
 	return x;
 }
 
@@ -64,24 +62,24 @@ int ccdl(int arg)
 	
 	GARLIC_printf("-- Programa CCDL  -  PID (%d) --\n", GARLIC_pid());
 	int num, cota_sup, nro_iter, cont=0;
-	cota_sup=pot(25,arg+2);
-   	num=alea(cota_sup);
-    GARLIC_printf("El numero es: %d \nComb. sumas de cuadrados:\n",num);
-   	nro_iter=pot(2,6-2*arg);
-	int a,b,c,d;
-	while(cont<nro_iter)
+	cota_sup = pot(25, arg+2);
+   	num = alea(cota_sup);
+    GARLIC_printf("El numero es: %d \nComb. sumas de cuadrados:\n", num);
+   	nro_iter = pot(2, 6 - 2*arg);
+	int a, b, c, d;
+	while(cont < nro_iter)
 	{
-		a=alea(raiz(num));
-		b=alea(raiz(num-a*a));
-		c=alea(raiz(num-a*a-b*b));
-		d=alea(raiz(num-a*a-b*b-c*c));
-		if((a*a+b*b+c*c+d*d)==num)
+		a = alea( raiz(num) );
+		b = alea( raiz(num - a*a) );
+		c = alea( raiz(num - a*a - b*b) );
+		d = alea( raiz(num - a*a - b*b - c*c) );
+		if((a*a + b*b + c*c + d*d) == num)
         {
             cont++;
-            GARLIC_printf("%d\t \t%d\t \t",a,b);
-			GARLIC_printf("%d\t \t%d\n",c,d);
+            GARLIC_printf("%d\t \t%d\t \t", a, b);
+			GARLIC_printf("%d\t \t%d\n", c, d);
 		}
 	}
-	GARLIC_printf("El numero era: %d \n",num);
+	GARLIC_printf("El numero era: %d \n", num);
 	return 0;
 }
