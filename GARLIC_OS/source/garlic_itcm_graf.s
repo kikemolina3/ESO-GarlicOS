@@ -40,10 +40,8 @@ _gg_escribirLinea:
 	add r5, r3					@; r5 = _gd_wbfs + nro ventana * WBUFS_LEN + 4 // r5 = @buffer ventana especifica
 	mov r7, r1					@; r7 = fila actual
 	mov r8, r2					@; r8 = num_caracteres escribir
-	@;------------------
 	bl _gg_calcIniFondo
 	mov r2, r0
-	@;--------------
 	mov r3, #2*PCOLS	
 	mul r3, r7					@; r3 = 1er pixel ventana + PCOLS*2*fila (1er pos. linea a escribir)
 	add r2, r3					@; r2 = pos.escritura
@@ -106,7 +104,7 @@ _gg_desplazar:
 	.global _gg_fijarBaldosa
 _gg_fijarBaldosa:
 	push {lr}
-	strh r2,[r0,r1]
+	strh r2, [r0, r1]
 	pop {pc}
 	
 	.global _gg_calcIniFondo
