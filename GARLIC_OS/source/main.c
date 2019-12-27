@@ -35,7 +35,7 @@ void inicializarSistema() {
 	_gd_pcbs[0].keyName = 0x4C524147;	// "GARL"
 
 	if (!_gm_initFS()) {
-		printf("ERROR: ¡no se puede inicializar el sistema de ficheros!");
+		_gg_escribir("ERROR: ¡no se puede inicializar el sistema de ficheros!", 0, 0, 0);
 		exit(0);
 	}
 }
@@ -58,44 +58,50 @@ int main(int argc, char **argv) {
 	_gg_escribir("*** Carga de programa CCDL.elf\n", 0, 0, 0);
 	start = _gm_cargarPrograma("CCDL");
 	if (start)
-	{	_gg_escribir("*** Direccion de arranque :\n\t\t%p\n", start, 0, 0);
-		_gg_escribir("*** Pusle tecla \'START\' ::\n\n", 0, 0, 0));
+	{	_gg_escribir("*** Direccion de arranque :\n\t\t%p\n", (unsigned int)start, 0, 0);
+		_gg_escribir("*** Pusle tecla \'START\' ::\n\n", 0, 0, 0);
 		while(1) {
 			_gp_WaitForVBlank();
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
 		_gp_crearProc(start, 5, "CCDL", 0);		// llamada al proceso CCDL con argumento 0
-	} else
-		_gg_escribir("*** Programa \"CCDL\" NO cargado\n", 0, 0, 0));
+	}else
+	{
+		_gg_escribir("*** Programa \"CCDL\" NO cargado\n", 0, 0, 0);
+	}
 	
 	_gg_escribir("*** Carga de programa XIFA.elf\n", 0, 0, 0);
 	start = _gm_cargarPrograma("XIFA");
 	if (start)
-	{	_gg_escribir("*** Direccion de arranque :\n\t\t%p\n", start, 0, 0);
-		_gg_escribir("*** Pusle tecla \'START\' ::\n\n", 0, 0, 0));
+	{	_gg_escribir("*** Direccion de arranque :\n\t\t%p\n", (unsigned int)start, 0, 0);
+		_gg_escribir("*** Pusle tecla \'START\' ::\n\n", 0, 0, 0);
 		while(1) {
 			_gp_WaitForVBlank();
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
 		_gp_crearProc(start, 5, "XIFA", 2);		// llamada al proceso XIFA con argumento 2
-	} else
-		_gg_escribir("*** Programa \"XIFA\" NO cargado\n", 0, 0, 0));
+	}else
+	{
+		_gg_escribir("*** Programa \"XIFA\" NO cargado\n", 0, 0, 0);
+	}
 	
 	_gg_escribir("*** Carga de programa PRNT.elf\n", 0, 0, 0);
 	start = _gm_cargarPrograma("PRNT");
 	if (start)
-	{	_gg_escribir("*** Direccion de arranque :\n\t\t%p\n", start, 0, 0);
-		_gg_escribir("*** Pusle tecla \'START\' ::\n\n", 0, 0, 0));
+	{	_gg_escribir("*** Direccion de arranque :\n\t\t%p\n", (unsigned int)start, 0, 0);
+		_gg_escribir("*** Pusle tecla \'START\' ::\n\n", 0, 0, 0);
 		while(1) {
 			_gp_WaitForVBlank();
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
 		_gp_crearProc(start, 5, "PRNT", 1);		// llamada al proceso PRNT con argumento 1
-	} else
-		_gg_escribir("*** Programa \"PRNT\" NO cargado\n", 0, 0, 0));
+	}else
+	{
+		_gg_escribir("*** Programa \"PRNT\" NO cargado\n", 0, 0, 0);
+	}
 	
 	while (_gp_numProc() > 1) {
 		_gp_WaitForVBlank();
