@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
-		_gp_crearProc(start, 5, "CCDL", 0);		// llamada al proceso CCDL con argumento 0
+		_gp_crearProc(start, 5, "CCDL", 0);		// llamada al proceso CCDL scon argumento 0
 	}else
 	{
 		_gg_escribir("*** Programa \"CCDL\" NO cargado\n", 0, 0, 0);
@@ -81,26 +81,26 @@ int main(int argc, char **argv) {
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
-		_gp_crearProc(start, 5, "XIFA", 2);		// llamada al proceso XIFA con argumento 2
+		_gp_crearProc(start, 5, "XIFA", 2);		 //llamada al proceso XIFA con argumento 2
 	}else
 	{
 		_gg_escribir("*** Programa \"XIFA\" NO cargado\n", 0, 0, 0);
 	}
 	
-	_gg_escribir("*** Carga de programa PRNT.elf\n", 0, 0, 0);
-	start = _gm_cargarPrograma("PRNT");
+	_gg_escribir("*** Carga de programa DNIF.elf\n", 0, 0, 0);
+	start = _gm_cargarPrograma("DNIF");
 	if (start)
-	{	_gg_escribir("*** Direccion de arranque :\n\t\t%p\n", (unsigned int)start, 0, 0);
+	{	_gg_escribir("*** Direccion de arranque :\n\t\t %p\n", (unsigned int)start, 0, 0);
 		_gg_escribir("*** Pusle tecla \'START\' ::\n\n", 0, 0, 0);
 		while(1) {
 			_gp_WaitForVBlank();
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
-		_gp_crearProc(start, 5, "PRNT", 1);		// llamada al proceso PRNT con argumento 1
+		_gp_crearProc(start, 5, "DNIF", 0);		// llamada al proceso PRNT con argumento 1
 	}else
 	{
-		_gg_escribir("*** Programa \"PRNT\" NO cargado\n", 0, 0, 0);
+		_gg_escribir("*** Programa \"DNIF\" NO cargado\n", 0, 0, 0);
 	}
 	
 	while (_gp_numProc() > 1) {
