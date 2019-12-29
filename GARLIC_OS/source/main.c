@@ -6,12 +6,6 @@
 #include <nds.h>
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 
-extern int hola(int);		// función que simula la ejecución del proceso
-extern int prnt(int);		// otra función (externa) de test correspondiente
-							// a un proceso de usuario
-extern int ccdl(int);		// se agrega dicha función de prueba (E. Molina)
-extern int xifa(int);
-
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
 
 /* Inicializaciones generales del sistema Garlic */
@@ -81,7 +75,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
-		_gp_crearProc(start, 5, "XIFA", 2);		 //llamada al proceso XIFA con argumento 2
+		_gp_crearProc(start, 6, "XIFA", 2);		 //llamada al proceso XIFA con argumento 2
 	}else
 	{
 		_gg_escribir("*** Programa \"XIFA\" NO cargado\n", 0, 0, 0);
@@ -97,7 +91,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			if (keysDown() & KEY_START) break;
 		}
-		_gp_crearProc(start, 5, "DNIF", 0);		// llamada al proceso PRNT con argumento 1
+		_gp_crearProc(start, 7, "DNIF", 0);		// llamada al proceso PRNT con argumento 1
 	}else
 	{
 		_gg_escribir("*** Programa \"DNIF\" NO cargado\n", 0, 0, 0);
