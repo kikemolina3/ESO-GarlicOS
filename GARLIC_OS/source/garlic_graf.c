@@ -9,15 +9,18 @@
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 #include <garlic_font.h>	// definición gráfica de caracteres
 
-
-/* definiciones para realizar cálculos relativos a la posición de los caracteres dentro de las ventanas gráficas, que pueden ser 4 o 16 */
-#define NVENT 4 // número de ventanas totales
-#define PPART 2 // número de ventanas horizontales o verticales			// (particiones de pantalla)
-#define VCOLS 32 // columnas y filas de cualquier ventana
-#define VFILS 24
-#define PCOLS VCOLS * PPART // número de columnas totales
-#define PFILS VFILS * PPART // número de filas totales
+/* definiciones para realizar cálculos relativos a la posición de los caracteres
+	dentro de las ventanas gráficas, que pueden ser 4 o 16 */
+#define NVENT	16				// número de ventanas totales
+#define PPART	4				// número de ventanas horizontales o verticales
+								// (particiones de pantalla)
+#define VCOLS	32				// columnas y filas de cualquier ventana
+#define VFILS	24
+#define PCOLS	VCOLS * PPART	// número de columnas totales (en pantalla)
+#define PFILS	VFILS * PPART	// número de filas totales (en pantalla)
 #define B_MARCO 0x06004000
+
+const unsigned int char_colors[] = {240, 96, 64};	// amarillo, verde, rojo
 
 
 /* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro */

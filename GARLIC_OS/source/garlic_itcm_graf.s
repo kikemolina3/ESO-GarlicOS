@@ -131,5 +131,63 @@ _gg_calcIniFondo:
 	add r2, r3								
 	add r0, r1, r2							@; r0 = dir. mem. 1er baldosa de la ventana especificada
 	pop {r1 - r7, pc}
+	
+	
+	.global _gg_escribirLineaTabla
+	@; escribe los campos básicos de una linea de la tabla correspondiente al
+	@; zócalo indicado por parámetro con el color especificado; los campos
+	@; son: número de zócalo, PID, keyName y dirección inicial
+	@;Parámetros:
+	@;	R0 (z)		->	número de zócalo
+	@;	R1 (color)	->	número de color (de 0 a 3)
+_gg_escribirLineaTabla:
+	push {lr}
+
+
+	pop {pc}
+
+
+	.global _gg_escribirCar
+	@; escribe un carácter (baldosa) en la posición de la ventana indicada,
+	@; con un color concreto;
+	@;Parámetros:
+	@;	R0 (vx)		->	coordenada x de ventana (0..31)
+	@;	R1 (vy)		->	coordenada y de ventana (0..23)
+	@;	R2 (car)	->	código del caràcter, como número de baldosa (0..127)
+	@;	R3 (color)	->	número de color del texto (de 0 a 3)
+	@; pila (vent)	->	número de ventana (de 0 a 15)
+_gg_escribirCar:
+	push {lr}
+
+
+	pop {pc}
+
+
+	.global _gg_escribirMat
+	@; escribe una matriz de 8x8 carácteres a partir de una posición de la
+	@; ventana indicada, con un color concreto;
+	@;Parámetros:
+	@;	R0 (vx)		->	coordenada x inicial de ventana (0..31)
+	@;	R1 (vy)		->	coordenada y inicial de ventana (0..23)
+	@;	R2 (m)		->	puntero a matriz 8x8 de códigos ASCII (dirección)
+	@;	R3 (color)	->	número de color del texto (de 0 a 3)
+	@; pila	(vent)	->	número de ventana (de 0 a 15)
+_gg_escribirMat:
+	push {lr}
+
+
+	pop {pc}
+
+
+
+	.global _gg_rsiTIMER2
+	@; Rutina de Servicio de Interrupción (RSI) para actualizar la representa-
+	@; ción del PC actual.
+_gg_rsiTIMER2:
+	push {lr}
+
+
+	pop {pc}
+	
 .end
 
