@@ -350,10 +350,59 @@ _gp_actualizarDelay:
 	@; Parámetros:
 	@;	R0:	zócalo del proceso a matar (entre 1 y 15).
 _gp_matarProc:
-	push {lr} 
-
-
-	pop {pc}
+	push {r0-r4, lr}
+	mov r1, #24
+	ldr r2, =_gd_pcbs
+	mla r1, r0, r1, r2
+	mov r2, #0
+	str r2, [r1]					@; Se pone el PID correspondiente al proceso que se quiere matar a 0. Así se indica que el zócalo está libre.
+	ldr r1, =_gp_qReady
+	ldr r3, =_gp_nReady
+	ldr r2, [r3]
+.L_buscar_qReady:
+	ldr r4, [r1]
+	cmp r0, r4					
+	beq .L_preDesplazar_qReady			@; Si ambos zócalos coinciden se procede a desplazar todos los procesos restantes de la cola de Ready a la posición anterior.
+	add r1, #1
+	subs r2, #1
+	bhi .L_buscar_qReady			
+	b .L_qDelay					@; Si no se ha encontrado el proceso en la cola de Ready, se busca en la cola de Delay.
+.L_preDesplazar_qReady:
+	sub r2, #1
+.L_desplazar_qReady:
+	ldr r0, [r1, #1]
+	str r0, [r1]
+	add r1, #1
+	subs r2, #1
+	bhi .L_desplazar_qReady
+	b .L_modificar_nProcQueue
+.L_qDelay:
+	ldr r1, =_gp_qDelay
+	ldr r3, =_gp_nDelay
+	ldr r2, [r3]
+.L_buscar_qDelay:
+	ldr r4, [r1]
+	mov r4, r4, lsr #24				@; Se obtiene el zócalo.
+	cmp r0, r4
+	beq .L_preDesplazar_qDelay			@; Si ambos zócalos coinciden se procede a desplazar todos los procesos restantes de la cola de Delay a la posición anterior.
+	add r1, #4
+	subs r2, #1
+	bhi .L_buscar_qDelay
+	b .L_fin_matarProc				@; Si no se ha encontrado el proceso en la cola de Delay, se termina la ejecución de la rutina.
+.L_preDesplazar_qDelay:
+	sub r2, #1				
+.L_desplazar_qDelay:
+	ldr r0, [r1, #4]
+	str r0, [r1]
+	add r1, #4
+	subs r2, #1
+	bhi .L_desplazar_qDelay
+.L_modificar_nProcQueue:
+	ldr r2, [r3]
+	sub r2, #1
+	str r2, [r3]					@; Si se ha encontrado el proceso en alguna de las dos colas, el número de procesos de dicha cola se deberá decrementar en na unidad.
+.L_fin_matarProc:
+	pop {r0-r4, pc}
 	
 	.global _gp_retardarProc
 	@; retarda la ejecución de un proceso durante cierto número de segundos,
