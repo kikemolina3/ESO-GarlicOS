@@ -318,14 +318,14 @@ _gp_actualizarDelay:
 	ldr r0, =_gp_qDelay			
 	ldr r1, =_gd_nDelay
 	ldr r2, [r1]				
-	mov r3, r2				@; El número de procesos de la cola de Delay estará replicado en dos registros. En uno de ellos actuará como contador del número de procesos que quedan por tratar. En el otro actuará como el número total de procesos bloqueados al final de la ejecución de la rutina.
+	mov r3, r2					@; El número de procesos de la cola de Delay estará replicado en dos registros. En uno de ellos actuará como contador del número de procesos que quedan por tratar. En el otro actuará como el número total de procesos bloqueados al final de la ejecución de la rutina.
 .L_actualizar_qDelay:
 	ldr r4, [r0]
-	sub r4, #1				@; Se decrementa una unidad el número de tics a retardar.
+	sub r4, #1					@; Se decrementa una unidad el número de tics a retardar.
 	movs r5, r4, lsl #8			@; Se elimina el zócalo y se actualizan los flags.
 	beq .L_desblocProc			@; Si el número de tics es 0, se deberá desplazar el proceso a la cola de Ready.
 	str r4, [r0] 
-	add r0, #4				@; Sino, se almacena de nuevo el proceso en la posición correspondiente y se avanza a la siguiente posición de la cola de Delay.	
+	add r0, #4					@; Sino, se almacena de nuevo el proceso en la posición correspondiente y se avanza a la siguiente posición de la cola de Delay.	
 	b .L_fin_desblocProc
 .L_desblocProc: 
 	ldr r5, =_gd_qReady
@@ -344,9 +344,9 @@ _gp_actualizarDelay:
 	subs r1, #1	
 	bhi .L_desplazar_qDelay
 	pop {r0, r2}
-	sub r3, #1				@; Se decrementa una unidad el número de procesos totales de la cola de Delay por cada proceso que se mueve a la cola de run. 
+	sub r3, #1					@; Se decrementa una unidad el número de procesos totales de la cola de Delay por cada proceso que se mueve a la cola de run. 
 .L_fin_desblocProc:
-	subs r2, #1				@; Se decrementa el número de procesos de la cola de Delay que quedan por tratar.
+	subs r2, #1					@; Se decrementa el número de procesos de la cola de Delay que quedan por tratar.
 	bhi .L_actualizar_qDelay
 	str r3, [r1]
 	pop {r0-r7, pc}
@@ -371,11 +371,11 @@ _gp_matarProc:
 .L_buscar_qReady:
 	ldr r4, [r1]
 	cmp r0, r4					
-	beq .L_preDesplazar_qReady			@; Si ambos zócalos coinciden se procede a desplazar todos los procesos restantes de la cola de Ready a la posición anterior.
+	beq .L_preDesplazar_qReady		@; Si ambos zócalos coinciden se procede a desplazar todos los procesos restantes de la cola de Ready a la posición anterior.
 	add r1, #1
 	subs r2, #1
 	bhi .L_buscar_qReady			
-	b .L_qDelay					@; Si no se ha encontrado el proceso en la cola de Ready, se busca en la cola de Delay.
+	b .L_qDelay						@; Si no se ha encontrado el proceso en la cola de Ready, se busca en la cola de Delay.
 .L_preDesplazar_qReady:
 	sub r2, #1
 .L_desplazar_qReady:
@@ -393,7 +393,7 @@ _gp_matarProc:
 	ldr r4, [r1]
 	mov r4, r4, lsr #24				@; Se obtiene el zócalo.
 	cmp r0, r4
-	beq .L_preDesplazar_qDelay			@; Si ambos zócalos coinciden se procede a desplazar todos los procesos restantes de la cola de Delay a la posición anterior.
+	beq .L_preDesplazar_qDelay		@; Si ambos zócalos coinciden se procede a desplazar todos los procesos restantes de la cola de Delay a la posición anterior.
 	add r1, #4
 	subs r2, #1
 	bhi .L_buscar_qDelay
@@ -421,17 +421,17 @@ _gp_matarProc:
 _gp_retardarProc:
 	push {r0-r3, lr}
 	ldr r1, [r3]
-	orr r1, #0x80000000		@; Se pone a 1 el bit de más peso del campo PID+z.
+	orr r1, #0x80000000			@; Se pone a 1 el bit de más peso del campo PID+z.
 	str r1, [r3]
-	mov r1, #60			@; En un segundo se producen 60 retrocesos verticales (60 tics).
-	mul r0, r1, r0			@; Por tanto, se multiplica el número de segundos por 60 para obtener el número de tics.
+	mov r1, #60					@; En un segundo se producen 60 retrocesos verticales (60 tics).
+	mul r0, r1, r0				@; Por tanto, se multiplica el número de segundos por 60 para obtener el número de tics.
 	orr r2, r0, r2, lsl #24		@; Se construye el valor del zócalo + el número de tics.	
 	ldr r0, =_gd_qDelay
 	ldr r3, =_gd_nDelay
 	ldr r1, [r3]
-	str r2, [r0, r1]		@; Se almacena el valor del zócalo + el número de tics en la última posición de la cola de Delay.
+	str r2, [r0, r1]			@; Se almacena el valor del zócalo + el número de tics en la última posición de la cola de Delay.
 	add r1, #1
-	str r1, [r3]			@; Se incrementa el número de procesos en la cola de Delay.
+	str r1, [r3]				@; Se incrementa el número de procesos en la cola de Delay.
 	bl _gp_WaitForVBlank		@; Se fuerza la cesión de la CPU a la espera de que se produzca un nuevo retroceso vertical.
 	pop {r0-r3, pc}
 
@@ -464,10 +464,48 @@ _gp_desinhibirIRQs:
 	@; gráfico secundario está correctamente configurado, se imprime en la
 	@; columna correspondiente de la tabla de procesos.
 _gp_rsiTIMER0:
-	push {lr}
-
-	
-	pop {pc}
+	push {r0-r9, lr}
+	ldr r4, =_gd_pcbs
+	ldr r5, =_gd_qReady
+	ldr r7, =gd_nReady
+	ldr r6, [r7]
+	mov r8, #24
+	mov r1, #0					@; En R1 se guardará la suma de todos los tics de trabajo. 			
+.L_sumar_workTics:
+	ldr r0, [r5]				@; Se obtiene el zócalo.
+	mla r0, r8, r0, r4
+	ldr r0, [r0, #20]			@; Se obtiene el % de us de la CPU + tics de trabajo del proceso correspondiente al zócalo.
+	mov r0, r0, lsl #8
+	add r1, r0, lsr #8			@; Se filtran los bits correspondientes al % de uso de la CPU y se acumulan en R1.
+	add r5, #1
+	subs r6, #1
+	bhi .L_sumar_workTics
+	ldr r5, =_gd_qReady
+	ldr r6, [r7]
+.L_calcular_porcentaje:
+	ldr r7, [r5]				@; Se obtiene el zócalo.
+	mla r9, r8, r7, r4
+	ldr r0, [r9, #20]			@; Se obtienen el % de us de la CPU + tics de trabajo del proceso correspondiente al zócalo.
+	mov r0, r0, lsl #8
+	mov r0, r0, lsr #8			@; Se filtran los bits correspondientes al porcentaje de uso de la CPU.
+	bl _ga_divmod				@; Se llama a la rutina _ga_divmod para calcular 
+	mov r3, r2, lsl #24
+	str r3, [r9, #20]			@; Se almacena el porcentaje de uso de la CPU en la posición correspondiente del PCB con los tics de trabajo a 0.
+	push {r1}
+	mov r0, r2
+	mov r1, #13
+	add r2, r7, #4				@; La fila en la que se ha de imprimir el porcentaje de uso de la CPU se calcula sumando 4 al zócalo del proceso.
+	mov r3, #0xFFFFFFFF			@; El porcentaje de uso de la CPU se imprimirá en color blanco.	
+	bl _gs_escribirStringSUb	@; Se imprime de la pantalla de trabajo el porcentaje de uso de la CPU por el proceso en la columna 13 y en la fila correspondiente a dicho proceso
+	pop {r1}
+	add r5, #1
+	subs r6, #1
+	bhi .L_calcular_porcentaje
+	ldr r0, =_gd_sincMain
+	ldr r1, [r0]
+	orr r1, #1
+	str r1, [r0]				@; Se pone a 1 el bit 0 de la variable global _gd_sincMain. 
+	pop {r0-r9, pc}
 
 
 	
