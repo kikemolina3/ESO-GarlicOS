@@ -326,10 +326,21 @@ _gp_matarProc:
 	@;Parámetros
 	@; R0: int nsec
 _gp_retardarProc:
-	push {lr}
-
-
-	pop {pc}
+	push {r0-r3, lr}
+	ldr r1, [r3]
+	orr r1, #0x80000000		@; Se pone a 1 el bit de más peso del campo PID+z.
+	str r1, [r3]
+	mov r1, #60			@; En un segundo se producen 60 retrocesos verticales (60 tics).
+	mul r0, r1, r0			@; Por tanto, se multiplica el número de segundos por 60 para obtener el número de tics.
+	orr r2, r0, r2, lsl #24		@; Se construye el valor del zócalo + el número de tics.	
+	ldr r0, =_gd_qDelay
+	ldr r3, =_gd_nDelay
+	ldr r1, [r3]
+	str r2, [r0, r1]		@; Se almacena el valor del zócalo + el número de tics en la última posición de la cola de Delay.
+	add r1, #1
+	str r1, [r3]			@; Se incrementa el número de procesos en la cola de Delay.
+	bl _gp_WaitForVBlank		@; Se fuerza la cesión de la CPU a la espera de que se produzca un nuevo retroceso vertical.
+	pop {r0-r3, pc}
 
 
 	.global _gp_inihibirIRQs
