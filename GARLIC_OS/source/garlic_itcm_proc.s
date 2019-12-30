@@ -1,6 +1,6 @@
 @;==============================================================================
 @;
-@;	"garlic_itcm_proc.s":	código de las funciones de control de procesos (1.0)
+@;	"garlic_itcm_proc.s":	código de las rutinas de control de procesos (2.0)
 @;						(ver "garlic_system.h" para descripción de funciones)
 @;
 @;==============================================================================
@@ -265,7 +265,7 @@ _gp_crearProc:
 	str r6, [r5]					@; Se almacena el nuevo valor del número de procesos en la dirección de memoria correspondiente.
 .L_fin_crearProc:
 	pop {r4-r7, pc}
-
+	
 
 	@; Rutina para terminar un proceso de usuario:
 	@; pone a 0 el campo PID del PCB del zócalo actual, para indicar que esa
@@ -283,9 +283,17 @@ _gp_terminarProc:
 	add r2, r11				@; R2 = dirección base _gd_pcbs[zocalo]
 	mov r3, #0
 	str r3, [r2]			@; pone a 0 el campo PID del PCB del proceso
+	str r3, [r2, #20]		@; borrar porcentaje de USO de la CPU
+	ldr r0, =_gd_sincMain
+	ldr r2, [r0]			@; R2 = valor actual de la variable de sincronismo
+	mov r3, #1
+	mov r3, r3, lsl r1		@; R3 = máscara con bit correspondiente al zócalo
+	orr r2, r3
+	str r2, [r0]			@; actualizar variable de sincronismo
 .LterminarProc_inf:
 	bl _gp_WaitForVBlank	@; pausar procesador
 	b .LterminarProc_inf	@; hasta asegurar el cambio de contexto
+
 	
 .end
 
