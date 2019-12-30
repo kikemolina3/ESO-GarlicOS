@@ -315,7 +315,7 @@ _gp_terminarProc:
 	@; cola de READY aquellos cuyo número de tics de retardo sea 0
 _gp_actualizarDelay:
 	push {r0-r7, lr}
-	ldr r0, =_gp_qDelay			
+	ldr r0, =_gd_qDelay			
 	ldr r1, =_gd_nDelay
 	ldr r2, [r1]				
 	mov r3, r2					@; El número de procesos de la cola de Delay estará replicado en dos registros. En uno de ellos actuará como contador del número de procesos que quedan por tratar. En el otro actuará como el número total de procesos bloqueados al final de la ejecución de la rutina.
@@ -337,12 +337,12 @@ _gp_actualizarDelay:
 	str r6, [r7]				@; Se incrementa el número de procesos de la cola de Ready.								
 	push {r0, r2}
 	sub r2, #1
-.L_desplazar_qDelay:
+.L_mover_qDelay:
 	ldr r4, [r0, #4]
 	str r4, [r0]				@; Se mueven todos los procesos bloquedaos (situados a partir del proceso que se ha movido a la cola de Ready) a la posición anterior de la cola de Delay.
 	add r0, #4
 	subs r1, #1	
-	bhi .L_desplazar_qDelay
+	bhi .L_mover_qDelay
 	pop {r0, r2}
 	sub r3, #1					@; Se decrementa una unidad el número de procesos totales de la cola de Delay por cada proceso que se mueve a la cola de run. 
 .L_fin_desblocProc:
@@ -365,8 +365,8 @@ _gp_matarProc:
 	mla r1, r0, r1, r2
 	mov r2, #0
 	str r2, [r1]					@; Se pone el PID correspondiente al proceso que se quiere matar a 0. Así se indica que el zócalo está libre.
-	ldr r1, =_gp_qReady
-	ldr r3, =_gp_nReady
+	ldr r1, =_gd_qReady
+	ldr r3, =_gd_nReady
 	ldr r2, [r3]
 .L_buscar_qReady:
 	ldr r4, [r1]
@@ -386,8 +386,8 @@ _gp_matarProc:
 	bhi .L_desplazar_qReady
 	b .L_modificar_nProcQueue
 .L_qDelay:
-	ldr r1, =_gp_qDelay
-	ldr r3, =_gp_nDelay
+	ldr r1, =_gd_qDelay
+	ldr r3, =_gd_nDelay
 	ldr r2, [r3]
 .L_buscar_qDelay:
 	ldr r4, [r1]
@@ -440,20 +440,22 @@ _gp_retardarProc:
 	@; pone el bit IME (Interrupt Master Enable) a 0, para inhibir todas
 	@; las IRQs y evitar así posibles problemas debidos al cambio de contexto
 _gp_inhibirIRQs:
-	push {lr}
-
-
-	pop {pc}
+	push {r0-r1, lr}
+	ldr r0, =0x04000208
+	mov r1, #0
+	str r1, [r0]
+	pop {r0-r1, pc}
 
 
 	.global _gp_desinihibirIRQs
 	@; pone el bit IME (Interrupt Master Enable) a 1, para desinhibir todas
 	@; las IRQs
 _gp_desinhibirIRQs:
-	push {lr}
-
-
-	pop {pc}
+	push {r0-r1, lr}
+	ldr r0, =0x04000208
+	mov r1, #1
+	str r1, [r0]
+	pop {r0-r1, pc}
 
 
 	.global _gp_rsiTIMER0
@@ -467,7 +469,7 @@ _gp_rsiTIMER0:
 	push {r0-r9, lr}
 	ldr r4, =_gd_pcbs
 	ldr r5, =_gd_qReady
-	ldr r7, =gd_nReady
+	ldr r7, =_gd_nReady
 	ldr r6, [r7]
 	mov r8, #24
 	mov r1, #0					@; En R1 se guardará la suma de todos los tics de trabajo. 			
@@ -492,11 +494,12 @@ _gp_rsiTIMER0:
 	mov r3, r2, lsl #24
 	str r3, [r9, #20]			@; Se almacena el porcentaje de uso de la CPU en la posición correspondiente del PCB con los tics de trabajo a 0.
 	push {r1}
-	mov r0, r2
-	mov r1, #13
-	add r2, r7, #4				@; La fila en la que se ha de imprimir el porcentaje de uso de la CPU se calcula sumando 4 al zócalo del proceso.
-	mov r3, #0xFFFFFFFF			@; El porcentaje de uso de la CPU se imprimirá en color blanco.	
-	bl _gs_escribirStringSUb	@; Se imprime de la pantalla de trabajo el porcentaje de uso de la CPU por el proceso en la columna 13 y en la fila correspondiente a dicho proceso
+	mov r1, #2
+	bl _gs_num2str_dec
+	add r1, r7, #4				@; La fila en la que se ha de imprimir el porcentaje de uso de la CPU se calcula sumando 4 al zócalo del proceso.
+	mov r2, #13
+	ldr r3, =0x7FFF				@; El porcentaje de uso de la CPU se imprimirá en color blanco.
+	bl _gs_escribirStringSub	@; Se imprime de la pantalla de trabajo el porcentaje de uso de la CPU por el proceso en la columna 13 y en la fila correspondiente a dicho proceso
 	pop {r1}
 	add r5, #1
 	subs r6, #1

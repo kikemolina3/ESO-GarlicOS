@@ -167,6 +167,16 @@ _ga_clear:
 	mov r1, #1				@; R1 = 1 -> 16 ventanas
 	bl _gs_borrarVentana
 	pop {r0-r1, pc}
+	
+_gg_escribirCar:
+	push {lr}
+	
+	pop {pc}
+	
+_gg_escribirMat:
+	push {lr}
+	
+	pop {pc}
 
 
 .end

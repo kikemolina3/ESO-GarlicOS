@@ -195,7 +195,7 @@ extern int _gm_listaProgs(char* progs[]);
 		!= 0	->	dirección de inicio del programa (intFunc)
 		== 0	->	no se ha podido cargar el programa
 */
-extern intFunc _gm_cargarPrograma(int zocalo, char *keyName);
+extern intFunc _gm_cargarPrograma(char *keyName);
 
 //------------------------------------------------------------------------------
 //	Rutinas de soporte a la gestión de memoria (garlic_itcm_mem.s)
@@ -260,7 +260,7 @@ extern void _gg_iniGrafA();
 
 /* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro,
 												con el color correspondiente */
-extern void _gg_generarMarco(int v, int color);
+extern void _gg_generarMarco(int v);
 
 /* _gg_escribir: escribe una cadena de caracteres en la ventana indicada;
 	Parámetros:
