@@ -1,6 +1,6 @@
 @;==============================================================================
 @;
-@;	"garlic_itcm_proc.s":	código de las funciones de control de procesos (1.0)
+@;	"garlic_itcm_proc.s":	código de las rutinas de control de procesos (2.0)
 @;						(ver "garlic_system.h" para descripción de funciones)
 @;
 @;==============================================================================
@@ -265,7 +265,7 @@ _gp_crearProc:
 	str r6, [r5]					@; Se almacena el nuevo valor del número de procesos en la dirección de memoria correspondiente.
 .L_fin_crearProc:
 	pop {r4-r7, pc}
-
+	
 
 	@; Rutina para terminar un proceso de usuario:
 	@; pone a 0 el campo PID del PCB del zócalo actual, para indicar que esa
@@ -283,9 +283,85 @@ _gp_terminarProc:
 	add r2, r11				@; R2 = dirección base _gd_pcbs[zocalo]
 	mov r3, #0
 	str r3, [r2]			@; pone a 0 el campo PID del PCB del proceso
+	str r3, [r2, #20]		@; borrar porcentaje de USO de la CPU
+	ldr r0, =_gd_sincMain
+	ldr r2, [r0]			@; R2 = valor actual de la variable de sincronismo
+	mov r3, #1
+	mov r3, r3, lsl r1		@; R3 = máscara con bit correspondiente al zócalo
+	orr r2, r3
+	str r2, [r0]			@; actualizar variable de sincronismo
 .LterminarProc_inf:
 	bl _gp_WaitForVBlank	@; pausar procesador
 	b .LterminarProc_inf	@; hasta asegurar el cambio de contexto
+	
+	
+	@; Rutina para actualizar la cola de procesos retardados, poniendo en
+	@; cola de READY aquellos cuyo número de tics de retardo sea 0
+_gp_actualizarDelay:
+	push {lr}
+
+
+	pop {pc}
+	
+	.global _gp_matarProc
+	@; Rutina para destruir un proceso de usuario:
+	@; borra el PID del PCB del zócalo referenciado por parámetro, para indicar
+	@; que esa entrada del vector _gd_pcbs está libre; elimina el índice de
+	@; zócalo de la cola de READY o de la cola de DELAY, esté donde esté;
+	@; Parámetros:
+	@;	R0:	zócalo del proceso a matar (entre 1 y 15).
+_gp_matarProc:
+	push {lr} 
+
+
+	pop {pc}
+	
+	.global _gp_retardarProc
+	@; retarda la ejecución de un proceso durante cierto número de segundos,
+	@; colocándolo en la cola de DELAY
+	@;Parámetros
+	@; R0: int nsec
+_gp_retardarProc:
+	push {lr}
+
+
+	pop {pc}
+
+
+	.global _gp_inihibirIRQs
+	@; pone el bit IME (Interrupt Master Enable) a 0, para inhibir todas
+	@; las IRQs y evitar así posibles problemas debidos al cambio de contexto
+_gp_inhibirIRQs:
+	push {lr}
+
+
+	pop {pc}
+
+
+	.global _gp_desinihibirIRQs
+	@; pone el bit IME (Interrupt Master Enable) a 1, para desinhibir todas
+	@; las IRQs
+_gp_desinhibirIRQs:
+	push {lr}
+
+
+	pop {pc}
+
+
+	.global _gp_rsiTIMER0
+	@; Rutina de Servicio de Interrupción (RSI) para contabilizar los tics
+	@; de trabajo de cada proceso: suma los tics de todos los procesos y calcula
+	@; el porcentaje de uso de la CPU, que se guarda en los 8 bits altos de la
+	@; entrada _gd_pcbs[z].workTicks de cada proceso (z) y, si el procesador
+	@; gráfico secundario está correctamente configurado, se imprime en la
+	@; columna correspondiente de la tabla de procesos.
+_gp_rsiTIMER0:
+	push {lr}
+
+	
+	pop {pc}
+
+
 	
 .end
 

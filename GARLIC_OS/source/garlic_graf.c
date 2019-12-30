@@ -17,40 +17,41 @@
 #define VFILS 24
 #define PCOLS VCOLS * PPART // número de columnas totales
 #define PFILS VFILS * PPART // número de filas totales
+#define B_MARCO 0x06004000
 
 
 /* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro */
 void _gg_generarMarco(int v)
 {
-	unsigned int coc, res, base=0x06005000;
+	unsigned int coc, res;
 	int i;
 	coc=v/PPART;
 	res=v%PPART;
 	unsigned int despl = 2*(PCOLS*VFILS*coc + VCOLS*res);
-	_gg_fijarBaldosa(base, despl, 103);				//esquina izquierda superior
+	_gg_fijarBaldosa(B_MARCO, despl, 103);					//esquina izquierda superior
 	despl += 2;
 	for(i=0; i<VCOLS-2; i++)								//fila superior (excto. esquinas)
 	{
-		_gg_fijarBaldosa(base, despl, 99);
+		_gg_fijarBaldosa(B_MARCO, despl, 99);
 		despl += 2;
 	}
-	_gg_fijarBaldosa(base, despl, 102);				//esquina derecha superior
+	_gg_fijarBaldosa(B_MARCO, despl, 102);					//esquina derecha superior	
 	for(i=0; i<VFILS-2; i++)								//laterales derecho & izquierdo
 	{
 		despl = despl + 2 + 2*(PCOLS-VCOLS);
-		_gg_fijarBaldosa(base, despl, 96);
+		_gg_fijarBaldosa(B_MARCO, despl, 96);
 		despl = despl + 2*(VCOLS-1);
-		_gg_fijarBaldosa(base, despl, 98);
+		_gg_fijarBaldosa(B_MARCO, despl, 98);
 	}
 	despl = despl + 2 + 2*(PCOLS-VCOLS); 
-	_gg_fijarBaldosa(base, despl, 100);				//esquina inferior izquierda
+	_gg_fijarBaldosa(B_MARCO, despl, 100);					//esquina inferior izquierda
 	despl += 2;
 	for(i=0; i<VCOLS-2; i++)								//fila inferior (excto. esquinas)
 	{
-		_gg_fijarBaldosa(base, despl, 97);
+		_gg_fijarBaldosa(B_MARCO, despl, 97);
 		despl += 2;
 	}
-	_gg_fijarBaldosa(base, despl, 101);				//esquina inferior derecha
+	_gg_fijarBaldosa(B_MARCO, despl, 101);					//esquina inferior derecha
 
 
 }
@@ -75,7 +76,7 @@ void _gg_iniGrafA()
 	videoSetMode(MODE_5_2D);
 	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
 	bg2 = bgInit(2, BgType_ExRotation, BgSize_ER_512x512, 4, 0);
-	bg3 = bgInit(3, BgType_ExRotation, BgSize_ER_512x512, 10, 0);
+	bg3 = bgInit(3, BgType_ExRotation, BgSize_ER_512x512, 8, 0);
 	bgSetPriority(bg2, 1);
 	bgSetPriority(bg3, 0);
 	decompress(garlic_fontTiles, bgGetGfxPtr(bg2), LZ77Vram);
@@ -107,30 +108,35 @@ void _gg_procesarFormato(char *formato, unsigned int val1, unsigned int val2,   
 																char *resultado)
 {
 	
-int cont_f=0, cont_r=0, j;
-	char used1=0, used2=0;
+int cont_f=0, cont_r=0, j=0;
+	char used1=0, used2=0, next;
 	char * e;
+	unsigned int val=0;
 	char temp_int[12], temp_hex[9];
 	while(cont_f<VCOLS*3 && formato[cont_f]!='\0')
 	{
 		if(formato[cont_f]=='%' && (!used1 || !used2))
 		{
-			switch(formato[cont_f+1])
+			next = formato[cont_f+1];
+			if(next == 'd' || next == 'x' || next == 's' || next == 'c')
 			{
-				case 'd':
 					if(!used1)
 					{
-						_gs_num2str_dec(temp_int, 12, val1);
-						used1=1;
+						val = val1;
+						used1 = 1;
 					}
-					else if(!used2)
+					else
 					{
-						_gs_num2str_dec(temp_int, 12, val2);
-						used2=1;
+						val = val2;
+						used2 = 1;
 					}
-					j=0;
-					while(temp_int[j]==' ')		j++;
-					while(temp_int[j]!='\0')
+			}
+			switch(next)
+			{	case 'd':
+					_gs_num2str_dec(temp_int, 12, val);
+					j = 0;
+					while(temp_int[j] == ' ')		j++;
+					while(temp_int[j] != '\0')
 					{
 						resultado[cont_r] = temp_int[j];
 						j++;
@@ -139,18 +145,9 @@ int cont_f=0, cont_r=0, j;
 					cont_f += 2;
 					break;
 				case 'x':
-					if(!used1)
-					{
-						_gs_num2str_hex(temp_hex, 9, val1);
-						used1=1;
-					}
-					else if(!used2)
-					{
-						_gs_num2str_hex(temp_hex, 9, val2);
-						used2=1;
-					}
-					j=0;
-					while(temp_hex[j]!='\0')
+					_gs_num2str_hex(temp_hex, 9, val);
+					j = 0;
+					while(temp_hex[j] != '\0')
 					{
 						resultado[cont_r] = temp_hex[j];
 						j++;
@@ -159,19 +156,8 @@ int cont_f=0, cont_r=0, j;
 					cont_f += 2;
 					break;
 				case 's':
-					if(!used1)
-					{
-						j=0;
-						e = (char*)val1;
-						used1=1;
-					}
-					else if(!used2)
-					{
-						j=0;
-						e = (char*)val2;
-						used2=1;
-					}
-					while(e[j]!='\0' && cont_f<99)
+					e = (char*) val;
+					while(e[j] != '\0' && cont_f < 99)
 						{
 							resultado[cont_r] = e[j];
 							j++;
@@ -180,38 +166,28 @@ int cont_f=0, cont_r=0, j;
 					cont_f += 2;
 					break;
 				case 'c':
-					if(!used1)
-					{
-						e = (char*)val1;
-						used1=1;
-					}
-					else if(!used2)
-					{
-						e = (char*)val2;
-						used2=1;
-					}
-					resultado[cont_r] = (unsigned int)e;
-					cont_r++;cont_f+=2;
+					e = (char*) val;
+					resultado[cont_r] = (unsigned int) e;
+					cont_r++;	cont_f += 2;
 					break;
 				case '%':
-					resultado[cont_r]=formato[cont_f];
-					cont_r++;cont_f+=2;
-					break;
+					resultado[cont_r] = formato[cont_f];
+					cont_r++;	cont_f += 2;
+					break;  
 				default:
-					resultado[cont_r]=formato[cont_f];
-					cont_r++;cont_f+=2;
-			}
+					resultado[cont_r] = formato[cont_f];
+					cont_r++;	cont_f++;
+			}	
 		}
 		else
 		{
-			resultado[cont_r]=formato[cont_f];
-			cont_r++;cont_f++;
+			resultado[cont_r] = formato[cont_f];
+			cont_r++;	cont_f++;
 		}
 		
 	}
 	resultado[cont_r]='\0';
 	return;
-
 }
 
 
@@ -231,7 +207,7 @@ int cont_f=0, cont_r=0, j;
 void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int ventana)
 {
 
-	char res[100];
+	char res[VCOLS*3 + 1];
 	
 	_gg_procesarFormato(formato, val1, val2, res);
 	
@@ -240,20 +216,20 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	int i;
 	
 	// STRING TO BUFFER & IMPRESSION
-	for(i=0; res[i]!='\0'; i++)
+	for(i = 0; res[i] != '\0'; i++)
 	{
-		if(res[i]==9)			//horizontal tab
-		{
-			while(num_char%4!=0)
+		if(res[i] == 9)			//horizontal tab
+		{ 
+			while(num_char % 4 != 0)
 			{
 				_gd_wbfs[ventana].pChars[num_char] = ' '; 
 				num_char++;
 				_gd_wbfs[ventana].pControl += 1;				
 			}
 		}
-		else if(res[i]==10)		//line feed
+		else if(res[i] == 10)		//line feed
 		{
-			while(num_char!=VCOLS)
+			while(num_char != VCOLS)
 			{
 				_gd_wbfs[ventana].pChars[num_char] = ' '; 
 				num_char++;
@@ -266,20 +242,20 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 			num_char++;
 			_gd_wbfs[ventana].pControl += 1;
 		}
-		if(num_char==VCOLS)
+		if(num_char == VCOLS)
 		{
 			_gp_WaitForVBlank();
 			if(fila_actual==VFILS)
 			{
 				_gg_desplazar(ventana);
-				fila_actual=VFILS-1;
+				fila_actual = VFILS - 1;
 			}
 			_gg_escribirLinea(ventana, fila_actual, num_char);
-			if(fila_actual!=VFILS)
+			if(fila_actual != VFILS)
 				fila_actual++;
-			num_char=0;
+			num_char = 0;
 			_gd_wbfs[ventana].pControl = 0;
-			if(res[i+1]==' ')			//elimina espacio linea inicial
+			if(res[i+1] == ' ')			//elimina espacio linea inicial
 				i++;
 		}
 	}
@@ -287,6 +263,6 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	//salvar estado gd_wbufs
 	int aux = fila_actual << 16;
 	aux = aux + num_char;
-	_gd_wbfs[ventana].pControl= aux;
+	_gd_wbfs[ventana].pControl = aux;
 	
 }

@@ -5,7 +5,7 @@
 #define MAX_CODIGO 6
 #define MAX_MENSAJE_CIFRADO 43
 
-int xifa(int arg) {
+int _start(int arg) {
 	char * mensajes[MAX_MENSAJES] = { "hola",
 									"Todo bien",
 									"esta noche he quedado",
