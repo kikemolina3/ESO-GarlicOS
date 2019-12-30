@@ -55,7 +55,7 @@ int pot(int a, int b)
 		si arg=3 --> nro_iter=1
 	3. Se imprimen los resultados
 ****************************************************************************/
-int ccdl(int arg)
+int _start(int arg)
 {
 	if (arg < 0) arg = 0;			// limitar valor máximo y 
 	else if (arg > 3) arg = 3;		// valor mínimo del argumento
