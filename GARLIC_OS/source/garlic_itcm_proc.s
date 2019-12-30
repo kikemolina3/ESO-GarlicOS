@@ -73,11 +73,19 @@ _gp_rsiVBL:
 	ldr r5, [r4]					@; Se obtiene el valor del contador de ticks.
 	add r5, #1						@; Se incrementa una unidad el contador de tics.
 	str r5, [r4]					@; Se guarda de nuevo en memoria el nuevo valor del contador de tics.
+	ldr r6, =_gd_pidz				@; Se carga la dirección de memoria del identificador de proceso + zócalo.
+	ldr r7, [r6]
+	and r7, #0xF
+	ldr r4, =_gd_pcbs
+	mov r5, #24
+	mla r5, r7, r5, r4				@; Se calcula la dirección base del pcb del proceso en ejecución.
+	ldr r7, [r5, #20]
+	add r7, #1
+	str r7, [r5, #20]				@; Se incrementa el contador de tics de trabajo del proceso en ejecución.
 	ldr r4, =_gd_nReady				@; Se carga la dirección de memoria del número de procesos en la cola de Ready.
 	ldr r5, [r4]					@; Se obtiene el número de procesos de la cola de Ready.
-	cmp r5, #0						@; Si comprueba si el número de procesos de la cola de Ready es 0.
-	beq .L_fi_rsiVBL				@; En caso afirmativo, se salta al final del programa.
-	ldr r6, =_gd_pidz				@; Se carga la dirección de memoria del identificador de proceso + zócalo.
+	cmp r5, #0						@; Se comprueba si el número de procesos de la cola de Ready es 0.
+	beq .L_fin_rsiVBL				@; En caso afirmativo, se salta al final del programa.
 	ldr r7, [r6]					@; Se obtiene el identificador de proceso + zócalo.
 	cmp r7, #0						@; Se comprueba si el PID + zócalo es 0 (si corresponde al proceso del sistema operativo).
 	beq .L_salvar_contexto			@; En caso afirmativo, se salta a la instrucción para salvar contexto.
@@ -87,7 +95,8 @@ _gp_rsiVBL:
 	bl _gp_salvarProc				@; Se llama a la rutina para salvar el contexto del proceso actual.
 .L_restaurar_contexto:
 	bl _gp_restaurarProc			@; Se llama a la rutina para restaurar el contexto del primer proceso de la cola de Ready. 
-.L_fi_rsiVBL:
+.L_fin_rsiVBL:
+	bl _gp_actualizarDelay			@; Se llama a la rutina para actualizar la cola de Delay.
 	pop {r4-r7, pc}
 
 
