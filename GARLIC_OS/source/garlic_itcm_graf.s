@@ -15,7 +15,7 @@ VFILS	= 24
 PCOLS	= VCOLS * PPART		@; número de columnas totales (en pantalla)
 PFILS	= VFILS * PPART		@; número de filas totales (en pantalla)
 
-WBUFS_LEN = 36				@; longitud de cada buffer de ventana (32+4)
+WBUFS_LEN = 68				@; longitud de cada buffer de ventana (32+4)
 
 BASE = 0x06000000
 
@@ -46,18 +46,16 @@ _gg_escribirLinea:
 	mul r3, r7					@; r3 = 1er pixel ventana + PCOLS*2*fila (1er pos. linea a escribir)
 	add r2, r3					@; r2 = pos.escritura
 	mov r6, #0					@; r6 = despl buffer
-	mov r7, #0					@; r7 = despl ventana
+	mov r4, #2 										
+	mul r8, r4
 .Lbuclebuffer:
 	cmp r6, r8
 	beq .Lfinal					@; si despl buffer == num_caracteres escribir ACABA
-	ldrb r1, [r5, r6]			@; r1 = cod. ASCII caracter
+	ldrh r1, [r5, r6]			@; r1 = cod. ASCII caracter
 	sub r1, #32					@; resta 32 a r1 para tener cod. baldosa
-	mov r0, #96
-	cmp r1, r0
-	movhs r1, #0				@; si cod. baldosa supera limites, escribe caracter vacio
-	strh r1, [r2, r7]			@; modifica indice de baldosa en donfo
-	add r6, #1					@; incrementos
-	add r7, #2
+	
+	strh r1, [r2, r6]			@; modifica indice de baldosa en donfo
+	add r6, #2					@; incrementos
 	b .Lbuclebuffer				@; iteración
 .Lfinal:
 	pop {r0 - r8, pc}

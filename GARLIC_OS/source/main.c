@@ -18,9 +18,13 @@ const short divFreq2 = -33513982/(1024*4);	// frecuencia de TIMER2 = 4 Hz
 const char *argumentosDisponibles[4] = { "0", "1", "2", "3"};
 		// se supone que estos programas están disponibles en el directorio
 		// "Programas" de las estructura de ficheros de Nitrofiles
+		/*
 const char *progs[7] = {"BORR","CRON","DESC","HOLA","LABE","PONG","PRNT"};
 const int num_progs = 7;
+*/
 
+const char *progs[2] = {"HOLA","PRNT"};
+const int num_progs = 2;
 
 /* Función para presentar una lista de opciones y escoger una: devuelve el índice de la opción
 		(0: primera opción, 1: segunda opción, etc.)
@@ -173,17 +177,17 @@ int main(int argc, char **argv) {
 	int key;
 
 	inicializarSistema();
-	/*
-	_gg_escribir("%1********************************", 0, 0, 4);
-	_gg_escribir("%1*                              *", 0, 0, 4);
-	_gg_escribir("%1* Sistema Operativo GARLIC 2.0 *", 0, 0, 6);
-	_gg_escribir("%1*                              *", 0, 0, 4);
+	
+	_gg_escribir("%1********************************", 0, 0, 0);
+	_gg_escribir("%1*                              *", 0, 0, 0);
+	_gg_escribir("%1* Sistema Operativo GARLIC 2.0 *", 0, 0, 0);
+	_gg_escribir("%1*                              *", 0, 0, 0);
 	_gg_escribir("%1********************************", 0, 0, 0);
 	_gg_escribir("%1*** Inicio fase 2_G\n", 0, 0, 0);
-	*/
-	intFunc start = _gm_cargarPrograma((char *)"HOLA");
-	_gp_crearProc(start,5, (char *)"HOLA", 2);
-/*
+	
+	intFunc start = _gm_cargarPrograma((char *)"PRNT");
+	_gp_crearProc(start, 9, (char *)"PRNT", 3);
+	
 	while (1)						// bucle infinito
 	{
 		scanKeys();
@@ -196,6 +200,6 @@ int main(int argc, char **argv) {
 		gestionSincronismos();
 		_gp_WaitForVBlank();		// retardo del proceso de sistema
 	}
-	*/
+	
 	return 0;			
 }
