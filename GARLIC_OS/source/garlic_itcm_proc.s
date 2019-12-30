@@ -302,10 +302,42 @@ _gp_terminarProc:
 	@; Rutina para actualizar la cola de procesos retardados, poniendo en
 	@; cola de READY aquellos cuyo número de tics de retardo sea 0
 _gp_actualizarDelay:
-	push {lr}
-
-
-	pop {pc}
+	push {r0-r7, lr}
+	ldr r0, =_gp_qDelay			
+	ldr r1, =_gd_nDelay
+	ldr r2, [r1]				
+	mov r3, r2				@; El número de procesos de la cola de Delay estará replicado en dos registros. En uno de ellos actuará como contador del número de procesos que quedan por tratar. En el otro actuará como el número total de procesos bloqueados al final de la ejecución de la rutina.
+.L_actualizar_qDelay:
+	ldr r4, [r0]
+	sub r4, #1				@; Se decrementa una unidad el número de tics a retardar.
+	movs r5, r4, lsl #8			@; Se elimina el zócalo y se actualizan los flags.
+	beq .L_desblocProc			@; Si el número de tics es 0, se deberá desplazar el proceso a la cola de Ready.
+	str r4, [r0] 
+	add r0, #4				@; Sino, se almacena de nuevo el proceso en la posición correspondiente y se avanza a la siguiente posición de la cola de Delay.	
+	b .L_fin_desblocProc
+.L_desblocProc: 
+	ldr r5, =_gd_qReady
+	ldr r7, =_gd_nReady
+	ldr r6, [r7]
+	mov r4, r4, lsr #24
+	strb r4, [r5, r6]			@; Se almacena el zócalo del proceso en la última posición de la cola de Ready.
+	add r6, #1
+	str r6, [r7]				@; Se incrementa el número de procesos de la cola de Ready.								
+	push {r0, r2}
+	sub r2, #1
+.L_desplazar_qDelay:
+	ldr r4, [r0, #4]
+	str r4, [r0]				@; Se mueven todos los procesos bloquedaos (situados a partir del proceso que se ha movido a la cola de Ready) a la posición anterior de la cola de Delay.
+	add r0, #4
+	subs r1, #1	
+	bhi .L_desplazar_qDelay
+	pop {r0, r2}
+	sub r3, #1				@; Se decrementa una unidad el número de procesos totales de la cola de Delay por cada proceso que se mueve a la cola de run. 
+.L_fin_desblocProc:
+	subs r2, #1				@; Se decrementa el número de procesos de la cola de Delay que quedan por tratar.
+	bhi .L_actualizar_qDelay
+	str r3, [r1]
+	pop {r0-r7, pc}
 	
 	.global _gp_matarProc
 	@; Rutina para destruir un proceso de usuario:
