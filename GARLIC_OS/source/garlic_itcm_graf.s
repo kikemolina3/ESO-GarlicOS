@@ -5,10 +5,10 @@
 @;
 @;==============================================================================
 
-NVENT	= 4					@; número de ventanas totales
-PPART	= 2 				@; número de ventanas horizontales o verticales
+NVENT	= 16					@; número de ventanas totales
+PPART	= 4 				@; número de ventanas horizontales o verticales
 							@; (particiones de pantalla)
-L2_PPART = 1				@; log base 2 de PPART
+L2_PPART = 2				@; log base 2 de PPART
 
 VCOLS	= 32				@; columnas y filas de cualquier ventana
 VFILS	= 24
@@ -17,7 +17,7 @@ PFILS	= VFILS * PPART		@; número de filas totales (en pantalla)
 
 WBUFS_LEN = 36				@; longitud de cada buffer de ventana (32+4)
 
-BASE = 0x06002000
+BASE = 0x06000000
 
 .section .itcm,"ax",%progbits
 
@@ -106,6 +106,34 @@ _gg_fijarBaldosa:
 	push {lr}
 	strh r2, [r0, r1]
 	pop {pc}
+	
+	.global _gg_cambiaColor
+	@;	Rutina que cambia el color de la fuente segun reciba por parametro
+	@; Parámetros:
+	@;		r0 = @inicial de la fuente
+	@;		r1 = tamaño del bloque de datos
+	@;		r2 = color
+_gg_cambiaColor:
+	push {r0-r6, lr}
+	mov r6, #0
+.Lrep:
+	ldrh r3, [r0, r6]				@; r3 = 2 bytes de color a analizar
+	and r4, r3, #0xff				@; byte bajo
+	and r5, r3, #0xff00				@; byte alto
+	cmp r4, #0
+	beq .L1
+	mov r4, r2
+.L1:
+	cmp r5, #0
+	beq .L2
+	mov r5, r2, lsl #8
+.L2:
+	orr r3, r4, r5
+	strh r3, [r0, r6]
+	add r6, #1
+	cmp r6, r1
+	blo .Lrep
+	pop {r0-r6, pc}
 	
 	.global _gg_calcIniFondo
 	@;  Rutina que obtiene la dir. de memoria con la primera baldosa de la 

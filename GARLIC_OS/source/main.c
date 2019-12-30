@@ -162,7 +162,7 @@ void inicializarSistema() {
 	REG_DISPSTAT |= 0xE620;			// fijar linea VCOUNT a 230 y activar int.
 	irqEnable(IRQ_VCOUNT);			// de VCOUNT
 	
-	REG_IME = IME_ENABLE;			// activar las interrupciones en general
+	REG_IME = IME_ENABLE;			// activar las interrupciones en general      
 }
 
 
@@ -173,14 +173,17 @@ int main(int argc, char **argv) {
 	int key;
 
 	inicializarSistema();
-	
-	_gg_escribir("%1********************************", 0, 0, 0);
-	_gg_escribir("%1*                              *", 0, 0, 0);
-	_gg_escribir("%1* Sistema Operativo GARLIC 2.0 *", 0, 0, 0);
-	_gg_escribir("%1*                              *", 0, 0, 0);
+	/*
+	_gg_escribir("%1********************************", 0, 0, 4);
+	_gg_escribir("%1*                              *", 0, 0, 4);
+	_gg_escribir("%1* Sistema Operativo GARLIC 2.0 *", 0, 0, 6);
+	_gg_escribir("%1*                              *", 0, 0, 4);
 	_gg_escribir("%1********************************", 0, 0, 0);
 	_gg_escribir("%1*** Inicio fase 2_G\n", 0, 0, 0);
-
+	*/
+	intFunc start = _gm_cargarPrograma((char *)"HOLA");
+	_gp_crearProc(start,5, (char *)"HOLA", 2);
+/*
 	while (1)						// bucle infinito
 	{
 		scanKeys();
@@ -193,5 +196,6 @@ int main(int argc, char **argv) {
 		gestionSincronismos();
 		_gp_WaitForVBlank();		// retardo del proceso de sistema
 	}
+	*/
 	return 0;			
 }

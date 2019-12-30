@@ -195,7 +195,7 @@ extern int _gm_listaProgs(char* progs[]);
 		!= 0	->	dirección de inicio del programa (intFunc)
 		== 0	->	no se ha podido cargar el programa
 */
-extern intFunc _gm_cargarPrograma(int zocalo, char *keyName);
+extern intFunc _gm_cargarPrograma(/*int zocalo, */char *keyName);
 
 //------------------------------------------------------------------------------
 //	Rutinas de soporte a la gestión de memoria (garlic_itcm_mem.s)
@@ -335,7 +335,9 @@ extern void _gg_escribirLineaTabla(int z, int color);
 				procesos relativa a la dirección actual de ejecución */
 extern void _gg_rsiTIMER2();
 
-//extern void _gg_fijarBaldosa(int a, int b, int c);
+extern void _gg_fijarBaldosa(int a, int b, int c);
+
+extern void _gg_cambiaColor(int a, int b, int c);
 
 //------------------------------------------------------------------------------
 //	Rutinas de soporte al sistema (garlic_itcm_sys.s)

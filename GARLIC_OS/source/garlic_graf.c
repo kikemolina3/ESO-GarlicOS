@@ -18,13 +18,15 @@
 #define VFILS	24
 #define PCOLS	VCOLS * PPART	// número de columnas totales (en pantalla)
 #define PFILS	VFILS * PPART	// número de filas totales (en pantalla)
-#define B_MARCO 0x06004000
+#define B_MARCO 0x06008000
 
 const unsigned int char_colors[] = {240, 96, 64};	// amarillo, verde, rojo
+const unsigned int dirs_fuente[] = {0x06012000, 0x06014000, 0x06016000};
+const unsigned int num_fuente = 3;
 
 
 /* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro */
-void _gg_generarMarco(int v)
+void _gg_generarMarco(int v, int a)
 {
 	unsigned int coc, res;
 	int i;
@@ -78,16 +80,21 @@ void _gg_iniGrafA()
 	int bg2, bg3;
 	videoSetMode(MODE_5_2D);
 	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
-	bg2 = bgInit(2, BgType_ExRotation, BgSize_ER_512x512, 4, 0);
-	bg3 = bgInit(3, BgType_ExRotation, BgSize_ER_512x512, 8, 0);
+	bg2 = bgInit(2, BgType_ExRotation, BgSize_ER_1024x1024, 0, 4);
+	bg3 = bgInit(3, BgType_Rotation, BgSize_ER_1024x1024, 16, 4);
 	bgSetPriority(bg2, 1);
 	bgSetPriority(bg3, 0);
 	decompress(garlic_fontTiles, bgGetGfxPtr(bg2), LZ77Vram);
+	for(i=0; i<num_fuente; i++)
+	{
+		decompress(garlic_fontTiles, (void *)dirs_fuente[i], LZ77Vram);
+		_gg_cambiaColor(dirs_fuente[i], 8192, char_colors[i]);
+	}
 	_gs_copiaMem(garlic_fontPal, BG_PALETTE, sizeof(garlic_fontPal));
 	for(i=0; i<NVENT; i++)
-		_gg_generarMarco(i);
-	bgSetScale(bg3,0x00000200,0x00000200);
-	bgSetScale(bg2,0x00000200,0x00000200);
+		_gg_generarMarco(i, 0);
+	bgSetScale(bg3,0x00000400,0x00000400);
+	bgSetScale(bg2,0x00000400,0x00000400);
 	bgUpdate();
 }
 
