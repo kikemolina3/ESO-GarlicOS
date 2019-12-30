@@ -202,11 +202,15 @@ _gp_restaurarProc:
 	@;Resultado
 	@; R0: número de procesos total
 _gp_numProc:
-	push {lr}
-	ldr r0, =_gd_nReady			@; Se carga la dirección de memoria del número de procesos de la cola de Ready.
-	ldr r0, [r0]				@; Se carga el número de procesos de la cola de Ready.
-	add r0, #1					@; Se suma el proceso de la cola de Run para obtener el número total de procesos del sistema.
-	pop {pc}
+	push {r1-r2, lr}
+	mov r0, #1				@; contar siempre 1 proceso en RUN
+	ldr r1, =_gd_nReady
+	ldr r2, [r1]			@; R2 = número de procesos en cola de READY
+	add r0, r2				@; añadir procesos en READY
+	ldr r1, =_gd_nDelay
+	ldr r2, [r1]			@; R2 = número de procesos en cola de DELAY
+	add r0, r2				@; añadir procesos retardados
+	pop {r1-r2, pc}
 
 
 	.global _gp_crearProc
