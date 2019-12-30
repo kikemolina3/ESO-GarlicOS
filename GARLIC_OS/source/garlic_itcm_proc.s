@@ -123,22 +123,25 @@ _gp_salvarProc:
 	ldr r8, [r8, #40]				@; Se carga el valor del registro 0 del proceso antes de que este fuese desbancado.
 	push {r8-r11}					@; Se apila los contenido de los registros 0, 1, 2 y 3 en la pila del proceso.
 	ldrb r8, [r6]					@; Se carga el contenido de la variable _gd_pidz.
-	and r8, #0xF					@; Se filtran los 28 bits correspondientes al identificador de proceso.
-	mov r9, #24						@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.							 					
-	ldr r10, =_gd_pcbs				@; Se carga la dirección de memoria base del vector de PCBs.
-	mla r9, r8, r9, r10				@; Se obtiene la posición de la variable para almacenar el PC del PCB del proceso a desbancar en el vector de PCBs. Se multiplica el zócalo por 24 y se le suma 4.
-	str sp, [r9, #8]				@; Se almacena el valor del SP en la posición correspondiente del PCB correspondiente.
-	mrs r10, CPSR					@; Se traslada el contenido del registro CPSR a uno de los registros de trabajo.
-	bic r10, #0x0D					@; Se aplica una máscara para modificar los bits de modo, que pasarán de indicar el modo System al modo IRQ.			
-	msr CPSR, r10					@; Se restaura el contenido del registro CPSR. Se vuelve al modo IRQ.
-	ldr r10, [sp, #60]				@; Se carga el valor del PC del proceso antes de ser desbancado. Se encuentra en la posición 60 de la pila del modo IRQ.
-	str r10, [r9, #4]				@; Se almacena el valor del PC del proceso antes de ser desbancado en la posición correspondiente del PCB correspondiente.
-	mrs r10, SPSR					@; Se traslada el contenido del registro SPSR (el CPSR del proceso que se quiere desbancar) a uno de los registros de trabajo.					
-	str r10, [r9, #12]				@; Se almacena el contenido del registro CPSR del proceso antes de ser desbancado en es el quarto campo del PCB correspondiente.
-	ldr r9, =_gd_qReady				@; Se carga la dirección de memoria de la cola de Ready.
-	strb r8, [r9, r5]				@; Se almacena el zócalo del proceso a desbancar en la última posición de la cola de Ready.
+	and r9, #0xF					@; Se filtran los 28 bits correspondientes al identificador de proceso.
+	mov r10, #24					@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.							 					
+	ldr r11, =_gd_pcbs				@; Se carga la dirección de memoria base del vector de PCBs.
+	mla r10, r9, r10, r11			@; Se obtiene la posición de la variable para almacenar el PC del PCB del proceso a desbancar en el vector de PCBs. Se multiplica el zócalo por 24 y se le suma 4.
+	str sp, [r10, #8]				@; Se almacena el valor del SP en la posición correspondiente del PCB correspondiente.
+	mrs r11, CPSR					@; Se traslada el contenido del registro CPSR a uno de los registros de trabajo.
+	bic r11, #0x0D					@; Se aplica una máscara para modificar los bits de modo, que pasarán de indicar el modo System al modo IRQ.			
+	msr CPSR, r11					@; Se restaura el contenido del registro CPSR. Se vuelve al modo IRQ.
+	ldr r11, [sp, #60]				@; Se carga el valor del PC del proceso antes de ser desbancado. Se encuentra en la posición 60 de la pila del modo IRQ.
+	str r11, [r10, #4]				@; Se almacena el valor del PC del proceso antes de ser desbancado en la posición correspondiente del PCB correspondiente.
+	mrs r11, SPSR					@; Se traslada el contenido del registro SPSR (el CPSR del proceso que se quiere desbancar) a uno de los registros de trabajo.					
+	str r11, [r10, #12]				@; Se almacena el contenido del registro CPSR del proceso antes de ser desbancado en es el quarto campo del PCB correspondiente.
+	tst r8, #0x80000000				@; Si el bit de más peso de la variable _gd_pidz está activo, no se almacena el zócalo en la cola de Ready.
+	bne .L_fin_salvarProc				
+	ldr r10, =_gd_qReady			@; Se carga la dirección de memoria de la cola de Ready.
+	strb r9, [r10, r5]				@; Se almacena el zócalo del proceso a desbancar en la última posición de la cola de Ready.
 	add r5, #1						@; Se incrementa el número de procesos en la cola de Ready.
 	str r5, [r4]					@; Se almacena el nuevo valor del número de procesos de la cola de Ready en la posición de memoria correspondiente.
+.L_fin_salvarProc:	
 	pop {r8-r11, pc}
 
 
