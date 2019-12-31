@@ -19,6 +19,8 @@ WBUFS_LEN = 68				@; longitud de cada buffer de ventana (32+4)
 
 BASE = 0x06000000
 
+BASE_SUB = 0x06200000
+
 .section .itcm,"ax",%progbits
 
 	.arm
@@ -53,7 +55,6 @@ _gg_escribirLinea:
 	beq .Lfinal					@; si despl buffer == num_caracteres escribir ACABA
 	ldrh r1, [r5, r6]			@; r1 = cod. ASCII caracter
 	sub r1, #32					@; resta 32 a r1 para tener cod. baldosa
-	
 	strh r1, [r2, r6]			@; modifica indice de baldosa en donfo
 	add r6, #2					@; incrementos
 	b .Lbuclebuffer				@; iteración
@@ -167,10 +168,55 @@ _gg_calcIniFondo:
 	@;	R0 (z)		->	número de zócalo
 	@;	R1 (color)	->	número de color (de 0 a 3)
 _gg_escribirLineaTabla:
-	push {lr}
-	
-
-	pop {pc}
+	push {r0-r12, lr}
+	mov r10, r0
+	mov r2, #(32*4+6)*2			@; desplazamiento hasta 1er pixel zocalo 0
+	ldr r3, =BASE_SUB
+	add r3, r2					@; primer pixel zocalo 0
+	ldr r4, =_gd_pcbs
+	mov r2, #6*4				@; tamaño de 1 entrada de _gd_pcbs 
+	mla r4, r0, r2, r4			@; r4 = dir. mem _gd_pcbs[z]	
+	mov r12, #128
+	mul r12, r1
+	@; OBTENCION E IMPRESION PID
+	mov r11, r4
+	ldr r5, [r4]				@; r5 = PID
+	sub sp, #12
+	mov r0, sp					@; r0 = dir. mem. *char con PID
+	mov r8, sp				
+	add sp, #12					@; restaurar pila
+	mov r1, #3					@; longitud 3 (2 cifras + '\0')
+	mov r2, r5					@; r2 = PID
+	bl _gs_num2str_dec
+	mov r4, #32*2
+	mul r4, r10
+	add r3, r4					@; r3 = posicion ESCRITURA PID
+.Ly:
+	ldrb r7, [r8]
+	cmp r7, #0
+	beq .Lx
+	sub r7, #32
+	add r7, r12
+	strh r7, [r3]
+	add r8, #1
+	add r3, #2
+	b .Ly
+.Lx:
+	add r3, #2
+	@; OBTENCION E IMPRESION KEYNAME
+	add r11, #16
+	mov r2, #0
+.Literachar:
+	ldrb r7, [r11]
+	sub r7, #32
+	add r7, r12
+	strh r7, [r3]
+	add r3, #2
+	add r11, #1
+	add r2, #1
+	cmp r2, #4
+	blo .Literachar
+	pop {r0-r12, pc}
 
 
 	.global _gg_escribirCar
@@ -211,11 +257,43 @@ _gg_escribirCar:
 	@;	R3 (color)	->	número de color del texto (de 0 a 3)
 	@; pila	(vent)	->	número de ventana (de 0 a 15)
 _gg_escribirMat:
-	push {lr}
-	
-
-	pop {pc}
-
+	push {r0-r8, lr}
+	mov r4, r0					@; r4 = coordenada X
+	add sp, #4*10				@; 4bytes * 10 pos. memoria (9 regs + lr)
+	ldr r0, [sp]				@; localizacion de 5to parametro
+	sub sp, #4*10
+	bl _gg_calcIniFondo
+	mov r5, #PCOLS*2
+	mul r5, r1					@; r5 = PCOLS * 2 * filas previas	
+	mov r1, #2
+	mul r4, r1					@; r4 = 2 * coordenada X
+	add r5, r4					@; posicionamiento en ventana
+	add r5, r0					@; r5 = @inicial + desplazamiento --> baldosa a escribir
+	mov r1, #128
+	mul r3, r1					@; r3 = desplazamiento a sumar de baldosas
+	mov r8, #0					@; r8 = contador de col
+.Literacol:
+	mov r6, #0					@; r6 = contador de fila
+.Literafila:
+	cmp r6, #8				
+	bhs .Lfinfila				
+	ldrb r7, [r2]				@; r7 = cod. ASCII de caracter
+	cmp r7, #32	
+	blo .Lnoescribible			@; comprobacion codigo escribible
+	sub r7, #32
+	add r7, r3					@; suma desplz. color
+	strh r7, [r5]				@; escritura baldosa en pantalla
+.Lnoescribible:
+	add r5, #2					@; @mem fondo2 + 2
+	add r6, #1					@; fila++
+	add r2, #1					@; @matriz a escribir + 1 (siguiente caracter)
+	b .Literafila
+.Lfinfila:
+	add r5, #2*PCOLS-16			@; salto linea a 1a pos 
+	add r8, #1					@; columna++
+	cmp r8, #8
+	blo .Literacol
+	pop {r0-r8, pc}
 
 
 	.global _gg_rsiTIMER2

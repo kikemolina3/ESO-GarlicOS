@@ -8,7 +8,6 @@
 ------------------------------------------------------------------------------*/
 #include <nds.h>
 #include <stdlib.h>
-
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
@@ -184,8 +183,9 @@ int main(int argc, char **argv) {
 	_gg_escribir("%1*                              *", 0, 0, 0);
 	_gg_escribir("%1********************************", 0, 0, 0);
 	_gg_escribir("%1*** Inicio fase 2_G\n", 0, 0, 0);
-	
-	
+		
+	//_gg_escribirLineaTabla(4, 1);
+		
 	while (1)						// bucle infinito
 	{
 		scanKeys();
