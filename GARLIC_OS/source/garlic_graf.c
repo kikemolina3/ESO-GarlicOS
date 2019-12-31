@@ -92,7 +92,7 @@ void _gg_iniGrafA()
 	}
 	_gs_copiaMem(garlic_fontPal, BG_PALETTE, sizeof(garlic_fontPal));
 	for(i=0; i<NVENT; i++)
-		_gg_generarMarco(i, 2);
+		_gg_generarMarco(i, 3);
 	bgSetScale(bg3,0x00000400,0x00000400);
 	bgSetScale(bg2,0x00000400,0x00000400);
 	bgUpdate();
@@ -225,7 +225,6 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	int fila_actual = ((_gd_wbfs[ventana].pControl & 0xFFF0000) >> 16);							// 12 medios --> fila actual
 	int num_char = _gd_wbfs[ventana].pControl & 0xFFFF;											// 16 bajos --> num_caracteres pendientes
 	int i;
-	
 	// STRING TO BUFFER & IMPRESSION
 	for(i = 0; res[i] != '\0'; i++)
 	{

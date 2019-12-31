@@ -168,7 +168,7 @@ _gg_calcIniFondo:
 	@;	R1 (color)	->	número de color (de 0 a 3)
 _gg_escribirLineaTabla:
 	push {lr}
-
+	
 
 	pop {pc}
 
@@ -183,10 +183,22 @@ _gg_escribirLineaTabla:
 	@;	R3 (color)	->	número de color del texto (de 0 a 3)
 	@; pila (vent)	->	número de ventana (de 0 a 15)
 _gg_escribirCar:
-	push {lr}
-
-
-	pop {pc}
+	push {r0-r5, lr}
+	mov r4, r0					@; r4 = coordenada X
+	add sp, #4*7				@; 4bytes * 7 pos. memoria (6 regs + lr)
+	ldr r0, [sp]				@; localizacion de 5to parametro
+	sub sp, #4*7
+	bl _gg_calcIniFondo
+	mov r5, #PCOLS*2
+	mul r5, r1					@; r5 = VCOLS * 2 * columnas previas	
+	mov r1, #2
+	mul r4, r1					@; r4 = 2 * coordenada X
+	add r5, r4					@; posicionamiento en ventana
+	add r5, r0					@; r5 = @inicial + desplazamiento --> baldosa a escribir	
+	mov r1, #128
+	mla r2, r3, r1, r2  		@; r2 = codigo baldosa a escribir
+	strh r2, [r5]
+	pop {r0-r5, pc}
 
 
 	.global _gg_escribirMat
@@ -200,7 +212,7 @@ _gg_escribirCar:
 	@; pila	(vent)	->	número de ventana (de 0 a 15)
 _gg_escribirMat:
 	push {lr}
-
+	
 
 	pop {pc}
 

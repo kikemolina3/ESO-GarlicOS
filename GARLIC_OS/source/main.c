@@ -23,8 +23,8 @@ const char *progs[7] = {"BORR","CRON","DESC","HOLA","LABE","PONG","PRNT"};
 const int num_progs = 7;
 */
 
-const char *progs[2] = {"HOLA","PRNT"};
-const int num_progs = 2;
+const char *progs[7] = {"HOLA","PRNT","LABE","DESC","CCDL","XIFA","BORR"};
+const int num_progs = 7;
 
 /* Función para presentar una lista de opciones y escoger una: devuelve el índice de la opción
 		(0: primera opción, 1: segunda opción, etc.)
@@ -185,8 +185,6 @@ int main(int argc, char **argv) {
 	_gg_escribir("%1********************************", 0, 0, 0);
 	_gg_escribir("%1*** Inicio fase 2_G\n", 0, 0, 0);
 	
-	intFunc start = _gm_cargarPrograma((char *)"PRNT");
-	_gp_crearProc(start, 9, (char *)"PRNT", 3);
 	
 	while (1)						// bucle infinito
 	{
