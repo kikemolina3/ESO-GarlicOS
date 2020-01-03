@@ -18,7 +18,6 @@ PFILS	= VFILS * PPART		@; número de filas totales (en pantalla)
 WBUFS_LEN = 68				@; longitud de cada buffer de ventana (32+4)
 
 BASE = 0x06000000
-
 BASE_SUB = 0x06200000
 
 .section .itcm,"ax",%progbits
@@ -34,7 +33,7 @@ BASE_SUB = 0x06200000
 	@;	R1: fila actual (int f)
 	@;	R2: número de caracteres a escribir (int n)
 _gg_escribirLinea:
-	push {r0 - r8, lr}
+	push {r0-r8, lr}
 	ldr r3, =_gd_wbfs			@; r3 = @inicial vector _gd_wbufs
 	mov r4, #WBUFS_LEN			@; r4 = 36
 	mul r5, r4, r0				@; r5 = nro ventana * WBUFS_LEN
@@ -59,7 +58,7 @@ _gg_escribirLinea:
 	add r6, #2					@; incrementos
 	b .Lbuclebuffer				@; iteración
 .Lfinal:
-	pop {r0 - r8, pc}
+	pop {r0-r8, pc}
 
 
 	.global _gg_desplazar
@@ -68,7 +67,7 @@ _gg_escribirLinea:
 	@;Parámetros:
 	@;	R0: ventana a desplazar (int v)
 _gg_desplazar:
-	push {r0 - r7, lr}
+	push {r0-r7, lr}
 	bl _gg_calcIniFondo
 	mov r1, r0					@; r1 = 1er pos ventana
 	mov r2, #2*VCOLS
@@ -97,7 +96,7 @@ _gg_desplazar:
 	add r7, #2					@; incremento despl sobre fondo
 	b .Lrepeat2
 .Lfin_ultima:
-	pop {r0 - r7, pc}
+	pop {r0-r7, pc}
 
 
 	.global _gg_fijarBaldosa
@@ -142,7 +141,7 @@ _gg_cambiaColor:
 	@; Retorna: 
 	@; 		r0 --> @memoria 1a baldosa de ventana
 _gg_calcIniFondo:
-	push {r1 - r7, lr}
+	push {r1-r7, lr}
 	ldr r1, =BASE							@; dir. inicial fondo escritura
 	mov r2, #1
 	mov r2, r2, lsl #L2_PPART
@@ -157,7 +156,7 @@ _gg_calcIniFondo:
 	mul r3, r4, r6							@; r3 = 2*VCOLS*columna
 	add r2, r3								
 	add r0, r1, r2							@; r0 = dir. mem. 1er baldosa de la ventana especificada
-	pop {r1 - r7, pc}
+	pop {r1-r7, pc}
 	
 	
 	.global _gg_escribirLineaTabla
@@ -169,54 +168,126 @@ _gg_calcIniFondo:
 	@;	R1 (color)	->	número de color (de 0 a 3)
 _gg_escribirLineaTabla:
 	push {r0-r12, lr}
-	mov r10, r0
-	mov r2, #(32*4+6)*2			@; desplazamiento hasta 1er pixel zocalo 0
-	ldr r3, =BASE_SUB
-	add r3, r2					@; primer pixel zocalo 0
-	ldr r4, =_gd_pcbs
-	mov r2, #6*4				@; tamaño de 1 entrada de _gd_pcbs 
-	mla r4, r0, r2, r4			@; r4 = dir. mem _gd_pcbs[z]	
-	mov r12, #128
-	mul r12, r1
-	@; OBTENCION E IMPRESION PID
-	mov r11, r4
-	ldr r5, [r4]				@; r5 = PID
-	sub sp, #12
-	mov r0, sp					@; r0 = dir. mem. *char con PID
-	mov r8, sp				
-	add sp, #12					@; restaurar pila
-	mov r1, #3					@; longitud 3 (2 cifras + '\0')
-	mov r2, r5					@; r2 = PID
+	ldr r10, =_gd_pcbs
+	mov r3, #6*4
+	mla r10, r3, r0, r10		@; r10 = dir. mem. pcb[z]
+	mov r3, r0					@; r3 = zocalo
+	mov r11, r3					@; r11 = zocalo
+	mov r4, r1					@; r4 = color
+	ldr r5, =BASE_SUB+4*32*2	@; r5 = dir. mem. linea 0
+	mov r6, #64
+	mul r6, r3					@; r6 = desplazamiento en linea segun zocalo
+	add r5, r6					@; r5 = dir. mem. linea a escribir
+	mov r6, #128				@; r6 = numero de baldosas del mismo color
+	mul r6, r4					@; r6 = desplazamiento color
+	mov r7, #0x68
+	add r7, r6					@; r7 = baldosa de pared
+	strh r7, [r5] 
+	add r5, #2					@; avance puntero escritura pantalla
+	@; INICIO ESCRITURA Z
+	sub sp, #3					@; abrir espacio en pila (3 bytes cadena texto) 
+	mov r0, sp
+	mov r9, r0					@; r9 = dir. mem. cadena caracteres
+	mov r1, #3					@; r1 = longitud
+	mov r2, r3					@; r2 = numero a convertir
 	bl _gs_num2str_dec
-	mov r4, #32*2
-	mul r4, r10
-	add r3, r4					@; r3 = posicion ESCRITURA PID
-.Ly:
-	ldrb r7, [r8]
-	cmp r7, #0
-	beq .Lx
-	sub r7, #32
-	add r7, r12
-	strh r7, [r3]
-	add r8, #1
-	add r3, #2
-	b .Ly
-.Lx:
-	add r3, #2
-	@; OBTENCION E IMPRESION KEYNAME
-	add r11, #16
-	mov r2, #0
+	mov r0, r9					@; r0 = dir. mem. cadena caracteres
+	mov r1, #4
+	add r1, r3					@; r1 = fila
+	mov r8, r1					@; r8 = fila
+	mov r2, #1					@; r2 = columna
+	mov r3, r4					@; r3 = color
+	bl _gs_escribirStringSub
+	add sp, #3
+	add r5, #4
+	strh r7, [r5]				@; escribe pared
+	@; INICIO ESCRITURA PID
+	sub sp, #5					@; abrir espacio pila (5 bytes)
+	mov r9, sp					@; r9 = dir. mem. cadena caracteres
+	mov r1, #5					@; r1 = longitud
+	ldr r2, [r10]				@; r2 = PID
+	mov r12, r2					@; r12 = PID
+	mov r0, r9					
+	bl _gs_num2str_dec
+	mov r0, r9					@; r0 = dir. mem. cadena caracteres
+	mov r1, r8					@; r1 = fila
+	mov r2, #4					@; r2 = columna
+	mov r3, r4					@; r3 = color
+	bl _gs_escribirStringSub	
+	add sp, #5
+	add r5, #10
+	strh r7, [r5]				@; escribe pared
+	@; INICIO ESCRITURA KEYNAME
+	add r5, #2
+	add r10, #16				@; r10 = dir. mem. keyname
+	mov r3, #0					@; r3 = cont. posiciones escritas
 .Literachar:
-	ldrb r7, [r11]
-	sub r7, #32
-	add r7, r12
-	strh r7, [r3]
-	add r3, #2
-	add r11, #1
+	ldrb r0, [r10]				@; r0 = caracter a escribir
+	sub r0, #32					@; r0 = calculo de indice de baldosa
+	add r0, r6					@; suma desplazamiento color
+	strh r0, [r5]
+	add r5, #2					@; incrementos
+	add r3, #1
+	add r10, #1
+	cmp r3, #4					@; itera 4 veces (4 letras)
+	blo .Literachar		
+	sub r10, #12				@; r10 = dir. mem. pc actual
+	strh r7, [r5]				@; escribe pared
+	@; ESCRIBE PAREDES RESTANTES	--     suma desplazamientos y establece baldosa
+	add r5, #18
+	strh r7, [r5]
+	add r5, #6
+	strh r7, [r5]
+	add r5, #4
+	strh r7, [r5]
+	add r5, #8
+	strh r7, [r5]
+	@; COMPARACIONES PARA BORRAR LINEA SI ES NECESARIO
+	cmp r11, #0					
+	beq .Lfinn
+	mov r0, r11					@; r0 = zocalo
+	cmp r12, #0
+	bleq _gg_lineaVacia			@; si PID = 0 y Z != 0 --> borrar linea
+.Lfinn:
+	pop {r0-r12, pc}
+	
+
+_gg_lineaVacia:
+	@;	Rutina que "blanquea" una linea (no escribe campos en ella  
+	@;  debido a que sobre dicho zocalo no hay ejecuciones)
+	@;Parámetros:
+	@; 		r0 = zocalo
+	push {r0-r2, lr}
+	ldr r1, =BASE_SUB+(4+32*4)*2				@; BASE FONDO + 2bytes * (4 lineas * 32 baldosas/linea + 4 caracteres iniciales)
+	mov r2, #32*2								@; r2 = 32 baldosas/linea * 2bytes
+	mul r2, r0									@; r2 = desplazamiento de linea = nro zocalo * tamaño linea
+	add r1, r2									@; r1 = 1a pos a "blanquear"
+	mov r0, #0									@; r0 = caracter ' '
+	mov r2, #0
+.Lborr1:				@; borrado de campo pid
+	strh r0, [r1]
+	add r1, #2
 	add r2, #1
 	cmp r2, #4
-	blo .Literachar
-	pop {r0-r12, pc}
+	blo .Lborr1
+	add r1, #2
+	mov r2, #0
+.Lborr2:				@; borrado de campo keyname
+	strh r0, [r1]
+	add r1, #2
+	add r2, #1
+	cmp r2, #4
+	blo .Lborr2
+	add r1, #2
+	mov r2, #0
+.Lborr3:				@; borrado de pc actual
+	strh r0, [r1]
+	add r1, #2
+	add r2, #1
+	cmp r2, #8
+	blo .Lborr3
+	pop {r0-r2, pc}
+
 
 
 	.global _gg_escribirCar
@@ -300,10 +371,36 @@ _gg_escribirMat:
 	@; Rutina de Servicio de Interrupción (RSI) para actualizar la representa-
 	@; ción del PC actual.
 _gg_rsiTIMER2:
-	push {lr}
-
-
-	pop {pc}
+	push {r0-r9, lr}
+	ldr r8, =_gd_pcbs			@; r8 = @inicial _gd_pcbs
+	mov r4, #6*4				@; r4 = tamaño entrada pcbs
+	mov r5, #0					@; r5 = cont. zocalos
+	mov r3, #0					@; r3 = codigo color
+.LiteraZ:
+	mla r7, r5, r4, r8
+	cmp r5, #0					
+	beq .Lsigue
+	ldr r9, [r7]
+	cmp r9, #0
+	beq .Lpasa					@; SOLO MOSTRARÁ PC SI (ZOCALO ACTIVO o Z=0 (sist. operativo))
+.Lsigue:
+	add r7, #4					@; r4 = @pc actual
+	sub sp, #9					@; abrir espacio pila
+	mov r0, sp
+	mov r9, sp
+	mov r1, #9					@; r1 = longitud cadena numero hex
+	ldr r2, [r7]				@; r2 = pc actual
+	bl _gs_num2str_hex
+	mov r0, r9					@; r0 = dir mem cadena car
+	add r1, r5, #4				@; r1 = fila
+	mov r2, #14					@; r2 = columna
+	bl _gs_escribirStringSub
+	add sp, #9					@; restaurar pila
+.Lpasa:
+	add r5, #1					@; zocalo ++
+	cmp r5, #NVENT
+	blo .LiteraZ				@; itera si zocalo < 16
+	pop {r0-r9, pc}
 	
 .end
 
