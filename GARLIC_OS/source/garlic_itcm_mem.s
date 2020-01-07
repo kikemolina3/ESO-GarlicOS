@@ -135,7 +135,7 @@ _gm_reservarMem:
 	blt .LPerFranja
 	mov r8,#0
 .LCompruebaEspacio:
-	cmp r8,#0
+	cmp r8,#0		@;Comprovamos que haya espacio
 	beq .LFin
 	mov r5,#0
 	ldr r6,=INI_MEM_PROC
@@ -161,10 +161,47 @@ _gm_reservarMem:
 	@;Parámetros:
 	@;	R0: el número de zócalo que libera la memoria
 _gm_liberarMem:
-	push {lr}
-
-
-	pop {pc}
+	push {r1-r9,lr}
+	ldr r1,=_gm_zocMem
+	mov r2,#0			@;Contador de franjas
+	ldr r3,=NUM_FRANJAS
+	mov r4,#0			@;Contiene el valor 0
+	mov r6,#0			@;Comprueba cuando empieza un bloque
+	mov r8,#0			@;Numero de franjas a pintar
+	mov r9,#0			@;Booleano (codigo o datos)
+.Lperfranja:
+	ldr r5,[r1,r2,lsr#2]
+	cmp r5,r0
+	bne .Lnofranja
+	cmp r6,#0
+	bne .Lnoprimera
+	add r6,#1
+	mov r7,r2
+.Lnoprimera:
+	add r8,#1
+	str r4,[r1,r2,lsr#2]
+.Lnofranja:
+	cmp r6,#0
+	beq .Lnoencontrado
+	mov r6,#0
+	push {r0-r3}
+	mov r0,#0
+	mov r1,r7
+	mov r2,r8
+	cmp r9,#0
+	mov r3,#0
+	beq .Lcodigo
+	mov r3,#1
+	add r9,#1
+.Lcodigo:
+	b _gm_pintarFranjas
+	mov r8,#0
+	pop {r0-r3}
+.Lnoencontrado:
+	add r2,#1
+	cmp r2,r3
+	blt .Lperfranja
+	pop {r1-r9,pc}
 
 
 	.global _gm_pintarFranjas
