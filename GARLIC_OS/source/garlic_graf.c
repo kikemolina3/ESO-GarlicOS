@@ -9,49 +9,54 @@
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 #include <garlic_font.h>	// definición gráfica de caracteres
 
+/* definiciones para realizar cálculos relativos a la posición de los caracteres
+	dentro de las ventanas gráficas, que pueden ser 4 o 16 */
+#define NVENT	16				// número de ventanas totales
+#define PPART	4				// número de ventanas horizontales o verticales
+								// (particiones de pantalla)
+#define VCOLS	32				// columnas y filas de cualquier ventana
+#define VFILS	24
+#define PCOLS	VCOLS * PPART	// número de columnas totales (en pantalla)
+#define PFILS	VFILS * PPART	// número de filas totales (en pantalla)
+#define B_MARCO 0x06008000
 
-/* definiciones para realizar cálculos relativos a la posición de los caracteres dentro de las ventanas gráficas, que pueden ser 4 o 16 */
-#define NVENT 4 // número de ventanas totales
-#define PPART 2 // número de ventanas horizontales o verticales			// (particiones de pantalla)
-#define VCOLS 32 // columnas y filas de cualquier ventana
-#define VFILS 24
-#define PCOLS VCOLS * PPART // número de columnas totales
-#define PFILS VFILS * PPART // número de filas totales
-#define B_MARCO 0x06004000
+const unsigned int char_colors[] = {240, 96, 64};	// amarillo, verde, rojo
+const unsigned int dirs_fuente[] = {0x06012000, 0x06014000, 0x06016000};
+const unsigned int num_fuente = 3;
 
 
 /* _gg_generarMarco: dibuja el marco de la ventana que se indica por parámetro */
-void _gg_generarMarco(int v)
+void _gg_generarMarco(int v, int a)
 {
 	unsigned int coc, res;
-	int i;
+	int i, index_color = 128*a; ;
 	coc=v/PPART;
 	res=v%PPART;
 	unsigned int despl = 2*(PCOLS*VFILS*coc + VCOLS*res);
-	_gg_fijarBaldosa(B_MARCO, despl, 103);					//esquina izquierda superior
+	_gg_fijarBaldosa(B_MARCO, despl, 103+index_color);					//esquina izquierda superior
 	despl += 2;
 	for(i=0; i<VCOLS-2; i++)								//fila superior (excto. esquinas)
 	{
-		_gg_fijarBaldosa(B_MARCO, despl, 99);
+		_gg_fijarBaldosa(B_MARCO, despl, 99+index_color);
 		despl += 2;
 	}
-	_gg_fijarBaldosa(B_MARCO, despl, 102);					//esquina derecha superior	
+	_gg_fijarBaldosa(B_MARCO, despl, 102+index_color);					//esquina derecha superior	
 	for(i=0; i<VFILS-2; i++)								//laterales derecho & izquierdo
 	{
 		despl = despl + 2 + 2*(PCOLS-VCOLS);
-		_gg_fijarBaldosa(B_MARCO, despl, 96);
+		_gg_fijarBaldosa(B_MARCO, despl, 96+index_color);
 		despl = despl + 2*(VCOLS-1);
-		_gg_fijarBaldosa(B_MARCO, despl, 98);
+		_gg_fijarBaldosa(B_MARCO, despl, 98+index_color);
 	}
 	despl = despl + 2 + 2*(PCOLS-VCOLS); 
-	_gg_fijarBaldosa(B_MARCO, despl, 100);					//esquina inferior izquierda
+	_gg_fijarBaldosa(B_MARCO, despl, 100+index_color);					//esquina inferior izquierda
 	despl += 2;
 	for(i=0; i<VCOLS-2; i++)								//fila inferior (excto. esquinas)
 	{
-		_gg_fijarBaldosa(B_MARCO, despl, 97);
+		_gg_fijarBaldosa(B_MARCO, despl, 97+index_color);
 		despl += 2;
 	}
-	_gg_fijarBaldosa(B_MARCO, despl, 101);					//esquina inferior derecha
+	_gg_fijarBaldosa(B_MARCO, despl, 101+index_color);					//esquina inferior derecha
 
 
 }
@@ -75,16 +80,21 @@ void _gg_iniGrafA()
 	int bg2, bg3;
 	videoSetMode(MODE_5_2D);
 	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
-	bg2 = bgInit(2, BgType_ExRotation, BgSize_ER_512x512, 4, 0);
-	bg3 = bgInit(3, BgType_ExRotation, BgSize_ER_512x512, 8, 0);
+	bg2 = bgInit(2, BgType_ExRotation, BgSize_ER_1024x1024, 0, 4);
+	bg3 = bgInit(3, BgType_Rotation, BgSize_ER_1024x1024, 16, 4);
 	bgSetPriority(bg2, 1);
 	bgSetPriority(bg3, 0);
 	decompress(garlic_fontTiles, bgGetGfxPtr(bg2), LZ77Vram);
+	for(i=0; i<num_fuente; i++)
+	{
+		decompress(garlic_fontTiles, (void *)dirs_fuente[i], LZ77Vram);
+		_gg_cambiaColor(dirs_fuente[i], 8192, char_colors[i]);
+	}
 	_gs_copiaMem(garlic_fontPal, BG_PALETTE, sizeof(garlic_fontPal));
 	for(i=0; i<NVENT; i++)
-		_gg_generarMarco(i);
-	bgSetScale(bg3,0x00000200,0x00000200);
-	bgSetScale(bg2,0x00000200,0x00000200);
+		_gg_generarMarco(i, 3);
+	bgSetScale(bg3,0x00000400,0x00000400);
+	bgSetScale(bg2,0x00000400,0x00000400);
 	bgUpdate();
 }
 
@@ -211,13 +221,35 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	
 	_gg_procesarFormato(formato, val1, val2, res);
 	
-	int fila_actual = (_gd_wbfs[ventana].pControl & 0xFFFF0000) >> 16;
-	int num_char = _gd_wbfs[ventana].pControl & 0xFFFF;
+	int index_color = (_gd_wbfs[ventana].pControl & 0xF0000000) >> 28;							// 4 bits altos --> color
+	int fila_actual = ((_gd_wbfs[ventana].pControl & 0xFFF0000) >> 16);							// 12 medios --> fila actual
+	int num_char = _gd_wbfs[ventana].pControl & 0xFFFF;											// 16 bajos --> num_caracteres pendientes
 	int i;
-	
 	// STRING TO BUFFER & IMPRESSION
 	for(i = 0; res[i] != '\0'; i++)
 	{
+		//CAMBIO DE COLOR
+		if(res[i] == '%')
+		{
+			char n = res[i+1];
+			if(n >= '0' && n <= '3')
+				i += 2;
+			switch(n)
+			{
+				case '0':
+					index_color = 0; 
+					break;
+				case '1':
+					index_color = 1; 
+					break;
+				case '2':
+					index_color = 2; 
+					break;
+				case '3':
+					index_color = 3; 
+					break;
+			}
+		}
 		if(res[i] == 9)			//horizontal tab
 		{ 
 			while(num_char % 4 != 0)
@@ -238,7 +270,10 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		}
 		else
 		{
-			_gd_wbfs[ventana].pChars[num_char] = res[i];
+			if(res[i]-32 < 96)
+				_gd_wbfs[ventana].pChars[num_char] = res[i] + index_color*128;
+			else 
+				_gd_wbfs[ventana].pChars[num_char] = 32;										// caracter en blanco
 			num_char++;
 			_gd_wbfs[ventana].pControl += 1;
 		}
@@ -261,8 +296,9 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	}
 	
 	//salvar estado gd_wbufs
+	int aux_color = index_color << 28;
 	int aux = fila_actual << 16;
-	aux = aux + num_char;
+	aux = aux + aux_color + num_char;
 	_gd_wbfs[ventana].pControl = aux;
 	
 }

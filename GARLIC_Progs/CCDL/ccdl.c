@@ -60,11 +60,11 @@ int _start(int arg)
 	if (arg < 0) arg = 0;			// limitar valor máximo y 
 	else if (arg > 3) arg = 3;		// valor mínimo del argumento
 	
-	GARLIC_printf("-- Programa CCDL  -  PID (%d) --\n", GARLIC_pid());
+	GARLIC_printf("%2-- Programa CCDL  -  PID (%d) --\n", GARLIC_pid());
 	int num, cota_sup, nro_iter, cont=0;
 	cota_sup = pot(25, arg+2);
    	num = alea(cota_sup);
-    GARLIC_printf("El numero es: %d \nComb. sumas de cuadrados:\n", num);
+    GARLIC_printf("%1El numero es: %d \n%3Comb. sumas de cuadrados:\n", num);
    	nro_iter = pot(2, 6 - 2*arg);
 	int a, b, c, d;
 	while(cont < nro_iter)
@@ -76,10 +76,10 @@ int _start(int arg)
 		if((a*a + b*b + c*c + d*d) == num)
         {
             cont++;
-            GARLIC_printf("%d\t \t%d\t \t", a, b);
-			GARLIC_printf("%d\t \t%d\n", c, d);
+                GARLIC_printf("%0%d\t \t%d\t \t", a, b);
+		GARLIC_printf("%0%d\t \t%d\n", c, d);
 		}
 	}
-	GARLIC_printf("El numero era: %d \n", num);
+	GARLIC_printf("%1El numero era: %d \n", num);
 	return 0;
 }
