@@ -24,7 +24,7 @@ int _start(int arg)				/* función de inicio : no se usa 'main' */
 									// esccribir mensaje inicial
 	GARLIC_printf("-- Programa PONG  -  PID %2(%d) %0--\n", GARLIC_pid());
 
-	x = 0; y = 0;					// posición inicial
+	x = 0; y = 1;					// posición inicial
 	dirx = 1; diry = 1;				// dirección inicial
 	GARLIC_printchar( x, y, 95, arg);	// escribir caracter por primera vez
 	do
@@ -35,7 +35,7 @@ int _start(int arg)				/* función de inicio : no se usa 'main' */
 		y += diry;						// avance del caracter
 		if ((x == 31) || (x == 0))
 			dirx = -dirx;				// rebote izquierda o derecha
-		if ((y == 23) || (y == 0))
+		if ((y == 23) || (y == 1))
 			diry = -diry;				// rebote arriba o abajo
 		if ((x == 0) && (y == 0))
 			y = 1;						// forzar posiciones (x+y) impares
