@@ -137,7 +137,7 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 	FILE* prog;
 	Elf32_Ehdr header;
 	Elf32_Phdr *segment;
-	int *buffAux,size,puntero[2],pos,numSeg=0,hay_espacio=1;
+	int *buffAux,size,puntero[2],pos,numSeg=0,hay_espacio=1,offset;
 	char path[21]="/Programas/";
 	unsigned char ph_type;
 	header.e_entry=0;
@@ -149,7 +149,6 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 	if(prog){
 		fseek(prog,0,SEEK_END);
 		size=ftell(prog);
-		//printf("%i\n",size);
 		buffAux=malloc(size);
 		fseek(prog,0,SEEK_SET);
 		fread(buffAux,1,size,prog);
@@ -157,6 +156,7 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 		fclose(prog);
 		//Cogemos los datos de la cabecera que necesitamos
 		header.e_entry= buffAux[6];
+		offset = header.e_entry - 0x8000;
 		header.e_phoff= buffAux[7];
 		header.e_shoff= buffAux[8];
 		header.e_phentsize= buffAux[10] & 0xF0;
@@ -166,12 +166,10 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 		
 		
 		segment= malloc(header.e_phentsize*header.e_phnum);
-		//Recorremos los segmentos y cargamos los tipos LOAD
 		while((numSeg<header.e_phnum) && (hay_espacio)){
 			pos=(header.e_phoff/4)+(numSeg*header.e_phentsize);
 			segment[numSeg].p_type= buffAux[pos];
 			if(segment[numSeg].p_type==1){
-				//printf("Hay segmento a cargar en memoria\n");
 				
 				//Cogemos datos del segmento 
 				segment[numSeg].p_offset=buffAux[pos+1];
@@ -191,7 +189,7 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 				if(puntero[numSeg] != 0) //HAY ESPACIO
 				{
 					if(segment[numSeg].p_flags == 5){	//SI ES DE CODIGO GUARDAMOS DIR INICIAL
-						header.e_entry=puntero[numSeg];
+						header.e_entry = puntero[numSeg] + offset;
 					}
 					segment[numSeg].p_offset +=(int) buffAux;
 					_gs_copiaMem((const void *)segment[numSeg].p_offset,(void *) puntero[numSeg],segment[numSeg].p_filesz);

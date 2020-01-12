@@ -33,7 +33,6 @@ _gm_zocMem:	.space NUM_FRANJAS			@; vector de ocupación de franjas mem.
 	@;Parámetros:
 	@; R0: dirección inicial del buffer de fichero (char *fileBuf)
 	@; R1: dirección de inicio de segmento de código (unsigned int pAddr_code)
-
 	@; R2: dirección de destino en la memoria (unsigned int *dest_code)
 	@; R3: dirección de inicio de segmento de datos (unsigned int pAddr_data)
 	@; (pila): dirección de destino en la memoria (unsigned int *dest_data)
@@ -41,6 +40,9 @@ _gm_zocMem:	.space NUM_FRANJAS			@; vector de ocupación de franjas mem.
 	@; cambio de las direcciones de memoria que se tienen que ajustar
 _gm_reubicar:
 	push {r0-r9,lr}
+	ldr r4,[sp,#11*4]
+	push {r3,r4}
+	push {r1,r2}
 	ldr r3,[r0,#32]		@;Cargamos en r3 header.e_shoff
 	add r4, r0, r3		@;Cargamos en r4 la direccion de memoria del primer byte de la tabla de secciones
 	mov r3,#0
