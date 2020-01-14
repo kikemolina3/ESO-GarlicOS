@@ -135,15 +135,15 @@ int _gm_listaProgs(char* progs[])
 intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 {
 	FILE* prog;
-	Elf32_Ehdr header;
+	Elf32_Ehdr *header;
 	Elf32_Phdr *segment;
-	int *buffAux,size,puntero[2],pos,numSeg=0,hay_espacio=1,offset;
+	int *buffAux,size,puntero[2],pos,numSeg=0,hay_espacio=1,offset,adresaFinal=0;
 	char path[21]="/Programas/";
 	unsigned char ph_type;
-	header.e_entry=0;
     strcat(path, keyName);
 	strcat(path, ".elf");
 	prog = fopen(path, "rb");
+	
 	
 	
 	if(prog){
@@ -153,71 +153,72 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 		fseek(prog,0,SEEK_SET);
 		fread(buffAux,1,size,prog);
 		//buffAux contiene todo el fichero ELF
-		fclose(prog);
-		//Cogemos los datos de la cabecera que necesitamos
-		header.e_entry= buffAux[6];
-		offset = header.e_entry - 0x8000;
-		header.e_phoff= buffAux[7];
-		header.e_shoff= buffAux[8];
-		header.e_phentsize= buffAux[10] & 0xF0;
-		header.e_phnum= buffAux[11] & 0x0F;
-		header.e_shentsize= buffAux[7] ;
-		header.e_shnum= buffAux[12] & 0x0F;
-		
-		
-		segment= malloc(header.e_phentsize*header.e_phnum);
-		while((numSeg<header.e_phnum) && (hay_espacio)){
-			pos=(header.e_phoff/4)+(numSeg*header.e_phentsize);
-			segment[numSeg].p_type= buffAux[pos];
-			if(segment[numSeg].p_type==1){
-				
-				//Cogemos datos del segmento 
-				segment[numSeg].p_offset=buffAux[pos+1];
-				segment[numSeg].p_paddr=buffAux[pos+3];
-				segment[numSeg].p_filesz=buffAux[pos+4];
-				segment[numSeg].p_memsz=buffAux[pos+5];
-				segment[numSeg].p_flags=buffAux[pos+6];
-				
-				if(segment[numSeg].p_flags == 5){
-					ph_type=0;
-				}else{
-					ph_type=1;
-				}
-				//Reservamos memoria
-				puntero[numSeg]=(int) _gm_reservarMem(zocalo,segment[numSeg].p_memsz,ph_type);
-				printf("%i",puntero[numSeg]);
-				if(puntero[numSeg] != 0) //HAY ESPACIO
-				{
-					if(segment[numSeg].p_flags == 5){	//SI ES DE CODIGO GUARDAMOS DIR INICIAL
-						header.e_entry = puntero[numSeg] + offset;
-					}
-					segment[numSeg].p_offset +=(int) buffAux;
-					_gs_copiaMem((const void *)segment[numSeg].p_offset,(void *) puntero[numSeg],segment[numSeg].p_filesz);
-					
-				}else{
-					hay_espacio=0;
-					header.e_entry=0;
-				}
-				
-			}
-			
-			
-			numSeg++;
-		}
-		
-		
-		if(hay_espacio)
+		header=malloc(sizeof(Elf32_Ehdr));
+		if(header)
 		{
-			if(header.e_phnum==1){
-					_gm_reubicar((char*)buffAux,(unsigned int)segment[0].p_paddr,(unsigned int *) puntero[0],0,0);
-			}else{
-					_gm_reubicar((char*)buffAux,(unsigned int)segment[0].p_paddr,(unsigned int *) puntero[0],(unsigned int ) segment[1].p_paddr,(unsigned int *) puntero[1]);
+			fseek(prog,0,SEEK_SET);						//COGEMOS CABECERA
+			fread(header,1,sizeof(Elf32_Ehdr),prog);
+			offset=header->e_entry - 0x8000;
+		
+			
+			
+			segment= malloc(sizeof(Elf32_Phdr) * header->e_phnum);
+			if(segment)
+			{
+				while((numSeg<header->e_phnum) && (hay_espacio))
+				{
+					pos=header->e_phoff+(numSeg*header->e_phentsize);	//COGEMOS SEGMENTO
+					fseek(prog,pos,SEEK_SET);
+					fread(&segment[numSeg],1,sizeof(Elf32_Phdr),prog);
+					
+					if(segment[numSeg].p_type==1){
+						
+						
+						
+						if(segment[numSeg].p_flags == 5){
+							ph_type=0;
+						}else{
+							ph_type=1;
+						}
+						//Reservamos memoria
+						puntero[numSeg]=(int) _gm_reservarMem(zocalo,segment[numSeg].p_memsz,ph_type);
+						if(puntero[numSeg] != 0) //HAY ESPACIO
+						{
+							if(segment[numSeg].p_flags == 5){	//SI ES DE CODIGO GUARDAMOS DIR INICIAL
+								adresaFinal = puntero[numSeg] + offset;
+							}
+							segment[numSeg].p_offset +=(int) buffAux;
+							_gs_copiaMem((const void *)segment[numSeg].p_offset,(void *) puntero[numSeg],segment[numSeg].p_filesz);
+							
+						}else{
+							hay_espacio=0;
+							adresaFinal=0;
+							if(numSeg>0) {_gm_liberarMem(zocalo);}
+						}
+						
+					}
+					
+					
+					numSeg++;
+				}
+				
+				
+				if(hay_espacio!=0)
+				{
+					if(header->e_phnum==1){
+							_gm_reubicar((char*)buffAux,(unsigned int)segment[0].p_paddr,(unsigned int *) puntero[0],0,0);
+					}else{
+							_gm_reubicar((char*)buffAux,(unsigned int)segment[0].p_paddr,(unsigned int *) puntero[0],(unsigned int ) segment[1].p_paddr,(unsigned int *) puntero[1]);
+					}
+				}
+				free(segment);
+				fclose(prog);
 			}
+			free(header);
 		}
 		free(buffAux);
-		//free(puntero);
 	}
 	
-	return ((intFunc) header.e_entry);
+	return ((intFunc) adresaFinal);
 }
 

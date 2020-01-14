@@ -40,12 +40,11 @@ _gm_zocMem:	.space NUM_FRANJAS			@; vector de ocupación de franjas mem.
 	@; cambio de las direcciones de memoria que se tienen que ajustar
 _gm_reubicar:
 	push {r0-r9,lr}
-	ldr r4,[sp,#11*4]
-	push {r3,r4}
-	push {r1,r2}
+	@;ldr r4,[sp,#11*4]
+	@;push {r3,r4}
+	@;push {r1,r2}
 	ldr r3,[r0,#32]		@;Cargamos en r3 header.e_shoff
 	add r4, r0, r3		@;Cargamos en r4 la direccion de memoria del primer byte de la tabla de secciones
-	mov r3,#0
 	ldrh r5,[r0,#48] 	@;Cargamos en r5 el num de secciones
 	ldrh r6,[r0,#46]	@;Cargamos en r6 el tamaño de cada seccion
 	mov r7,#0
@@ -54,7 +53,6 @@ _gm_reubicar:
 	ldr r9,[r8,#4]		@;Cargamos en r9 tipo de seccion
 	cmp r9,#9
 	bne .LNoSeccionRel
-	add r3,#1
 	ldr r10,[r8,#16]	@;Cargamos en r10 el offset de los relocs
 	add r10, r0, r10
 	ldr r11,[r8,#20]	@;Cargamos en r11 el tamaño de la seccion
@@ -78,20 +76,11 @@ _gm_reubicar:
 	cmp r10,r11
 	blt .LRecorrerSeccion
 .LNoSeccionRel:
-	cmp r3,#1
-	beq .LCogerDir
 	add r7,#1
 	cmp r7,r5
 	blt .LRecorrerSecciones
-	b .LFi
-.LCogerDir:
-	pop {r1,r2}
-	add r7,#1
-	cmp r7,r5
-	blt .LRecorrerSecciones
-.LFi:
-	mov r3,r1
-	pop {r0-r2,r4-r9,pc}
+
+	pop {r0-r9,pc}
 
 
 	.global _gm_reservarMem
@@ -113,7 +102,7 @@ _gm_reubicar:
 _gm_reservarMem:
 	push {r1-r8,lr}
 	mov r3,#0
-	mov r4,r1
+	mov r4,r1		
 .LFor:				@;Buscamos cuantos bloques del vector se necesitan
 	sub r4,#32
 	add r3,#1
@@ -124,34 +113,38 @@ _gm_reservarMem:
 	mov r5,#0		@;contador de franjas (r5<768)
 	mov r6,#0		@;contador de franjas libres 
 .LPerFranja:
-	ldr r7,[r4,r5,lsr#2]
+	ldrb r7,[r4,r5]
 	cmp r7,#0
 	addeq r6,#1
 	movne r6,#0
-	cmp r6,#1		@;Si trobem primera posicio lliure guardem adresa
-	moveq r8,r5,lsr#2	
+	cmp r7,r0
+	moveq r8,r5	
+	beq .LNoEspacio
+	cmp r6,#1		@;Si trobem primera posicio lliure guardem POSICIO
+	moveq r8,r5	
 	cmp r6,r3		@;Si trobem espai suficientment gran
-	beq .LCompruebaEspacio
+	beq .LHayEspacio
 	add r5,#1
 	cmp r5,#NUM_FRANJAS
 	blt .LPerFranja
-	mov r8,#0
-.LCompruebaEspacio:
-	cmp r8,#0		@;Comprovamos que haya espacio
-	beq .LFin
+	b .LNoEspacio
+.LHayEspacio:
 	mov r5,#0
-	ldr r6,=INI_MEM_PROC
-	ldr r7,[r6]
-	mov r6,r8
-	add r6,r7
+	add r4,r8
 .LIntroduceFranja:
-	str r0,[r8,r5,lsr#2]
+	strb r0,[r4,r5]
 	add r5,#1
 	cmp r5,r3
 	blt .LIntroduceFranja
-	mov r8,r6
-.LFin:
+	ldr r6,=INI_MEM_PROC
+	add r5,r6,r8,lsl#5
+	mov r8,r5
 	mov r0,r8
+	b .LFin
+.LNoEspacio:
+	mov r0,#0
+.LFin:
+	
 	pop {r1-r8,pc}
 
 
@@ -165,6 +158,7 @@ _gm_reservarMem:
 _gm_liberarMem:
 	push {r1-r9,lr}
 	ldr r1,=_gm_zocMem
+	@;ldr r10,=INI_MEM_PROC
 	mov r2,#0			@;Contador de franjas
 	ldr r3,=NUM_FRANJAS
 	mov r4,#0			@;Contiene el valor 0
@@ -172,31 +166,33 @@ _gm_liberarMem:
 	mov r8,#0			@;Numero de franjas a pintar
 	mov r9,#0			@;Booleano (codigo o datos)
 .Lperfranja:
-	ldr r5,[r1,r2,lsr#2]
+	ldrb r5,[r1,r2]
 	cmp r5,r0
-	bne .Lnofranja
+	bne .Lnofranja		@;Si no es franja del zocalo
 	cmp r6,#0
-	bne .Lnoprimera
+	bne .Lnoprimera     @;Si no es la primera franja del bloque
 	add r6,#1
 	mov r7,r2
 .Lnoprimera:
 	add r8,#1
-	str r4,[r1,r2,lsr#2]
+	strb r4,[r1,r2]
+	@;str r4,[r10,r2,lsl#2]
+	b .Lnoencontrado
 .Lnofranja:
 	cmp r6,#0
-	beq .Lnoencontrado
+	beq .Lnoencontrado	@;Si todavia no hemos encontrado la primera franja del bloque
 	mov r6,#0
 	push {r0-r3}
 	mov r0,#0
 	mov r1,r7
 	mov r2,r8
 	cmp r9,#0
-	mov r3,#0
-	beq .Lcodigo
 	mov r3,#1
+	bne .Ldatos		@;Si r9 no es 0, es un segmento de datos, ya que no es el primero
+	mov r3,#0
 	add r9,#1
-.Lcodigo:
-	b _gm_pintarFranjas
+.Ldatos:
+	bl _gm_pintarFranjas
 	mov r8,#0
 	pop {r0-r3}
 .Lnoencontrado:

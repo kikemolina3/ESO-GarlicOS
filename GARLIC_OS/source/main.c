@@ -169,9 +169,11 @@ int main(int argc, char **argv) {
 				
 				start = _gm_cargarPrograma(zocalo, progs[ind_prog]);
 				if (start)
-				{	_gp_crearProc(start, zocalo, progs[ind_prog], zocalo-1);
+				{	//_gp_crearProc(start, zocalo, progs[ind_prog], zocalo-1);
 					_gg_escribir("*** Programa cargado!\n\n\t", 0, 0, 0);
-					_gg_escribir("%d: %s.elf\n\n", zocalo, (unsigned int) progs[ind_prog], 0);
+					_gg_escribir("%d: %s.elf\n\n", zocalo, (unsigned int) progs[ind_prog],0);
+					start(1);
+					//_gm_liberarMem(zocalo);
 				}
 			}
 		}
