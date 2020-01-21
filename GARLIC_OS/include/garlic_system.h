@@ -335,7 +335,7 @@ extern void _gg_escribirLineaTabla(int z, int color);
 				procesos relativa a la dirección actual de ejecución */
 extern void _gg_rsiTIMER2();
 
-//extern void _gg_fijarBaldosa(int a, int b, int c);
+extern void _gg_fijarBaldosa(int a, int b, int c);
 
 //------------------------------------------------------------------------------
 //	Rutinas de soporte al sistema (garlic_itcm_sys.s)
