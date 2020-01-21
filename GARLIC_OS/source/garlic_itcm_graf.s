@@ -1,19 +1,19 @@
 ﻿@;==============================================================================
 @;
-@;	"garlic_itcm_graf.s":	código de rutinas de soporte a la gestión de
-@;							ventanas gráficas (versión 1.0)
+@;	"garlic_itcm_graf.s":	cÃ³digo de rutinas de soporte a la gestiÃ³n de
+@;							ventanas grÃ¡ficas (versiÃ³n 1.0)
 @;
 @;==============================================================================
 
-NVENT	= 4					@; número de ventanas totales
-PPART	= 2 				@; número de ventanas horizontales o verticales
+NVENT	= 4					@; nÃºmero de ventanas totales
+PPART	= 2 				@; nÃºmero de ventanas horizontales o verticales
 							@; (particiones de pantalla)
 L2_PPART = 1				@; log base 2 de PPART
 
 VCOLS	= 32				@; columnas y filas de cualquier ventana
 VFILS	= 24
-PCOLS	= VCOLS * PPART		@; número de columnas totales (en pantalla)
-PFILS	= VFILS * PPART		@; número de filas totales (en pantalla)
+PCOLS	= VCOLS * PPART		@; nÃºmero de columnas totales (en pantalla)
+PFILS	= VFILS * PPART		@; nÃºmero de filas totales (en pantalla)
 
 WBUFS_LEN = 36				@; longitud de cada buffer de ventana (32+4)
 
@@ -27,12 +27,12 @@ BASE = 0x06002000
 	.global _gg_escribirLinea
 	@; Rutina para escribir toda una linea de caracteres almacenada en el
 	@; buffer de la ventana especificada;
-	@;Parámetros:
+	@;ParÃ¡metros:
 	@;	R0: ventana a actualizar (int v)
 	@;	R1: fila actual (int f)
-	@;	R2: número de caracteres a escribir (int n)
+	@;	R2: nÃºmero de caracteres a escribir (int n)
 _gg_escribirLinea:
-	push {r0 - r8, lr}
+	push {r0-r8, lr}
 	ldr r3, =_gd_wbfs			@; r3 = @inicial vector _gd_wbufs
 	mov r4, #WBUFS_LEN			@; r4 = 36
 	mul r5, r4, r0				@; r5 = nro ventana * WBUFS_LEN
@@ -46,30 +46,27 @@ _gg_escribirLinea:
 	mul r3, r7					@; r3 = 1er pixel ventana + PCOLS*2*fila (1er pos. linea a escribir)
 	add r2, r3					@; r2 = pos.escritura
 	mov r6, #0					@; r6 = despl buffer
-	mov r7, #0					@; r7 = despl ventana
+	mov r4, #2 										
+	mul r8, r4
 .Lbuclebuffer:
 	cmp r6, r8
 	beq .Lfinal					@; si despl buffer == num_caracteres escribir ACABA
-	ldrb r1, [r5, r6]			@; r1 = cod. ASCII caracter
+	ldrh r1, [r5, r6]			@; r1 = cod. ASCII caracter
 	sub r1, #32					@; resta 32 a r1 para tener cod. baldosa
-	mov r0, #96
-	cmp r1, r0
-	movhs r1, #0				@; si cod. baldosa supera limites, escribe caracter vacio
-	strh r1, [r2, r7]			@; modifica indice de baldosa en donfo
-	add r6, #1					@; incrementos
-	add r7, #2
-	b .Lbuclebuffer				@; iteración
+	strh r1, [r2, r6]			@; modifica indice de baldosa en donfo
+	add r6, #2					@; incrementos
+	b .Lbuclebuffer				@; iteraciÃ³n
 .Lfinal:
-	pop {r0 - r8, pc}
+	pop {r0-r8, pc}
 
 
 	.global _gg_desplazar
-	@; Rutina para desplazar una posición hacia arriba todas las filas de la
-	@; ventana (v), y borrar el contenido de la última fila
-	@;Parámetros:
+	@; Rutina para desplazar una posiciÃ³n hacia arriba todas las filas de la
+	@; ventana (v), y borrar el contenido de la Ãºltima fila
+	@;ParÃ¡metros:
 	@;	R0: ventana a desplazar (int v)
 _gg_desplazar:
-	push {r0 - r7, lr}
+	push {r0-r7, lr}
 	bl _gg_calcIniFondo
 	mov r1, r0					@; r1 = 1er pos ventana
 	mov r2, #2*VCOLS
@@ -98,7 +95,7 @@ _gg_desplazar:
 	add r7, #2					@; incremento despl sobre fondo
 	b .Lrepeat2
 .Lfin_ultima:
-	pop {r0 - r7, pc}
+	pop {r0-r7, pc}
 
 
 	.global _gg_fijarBaldosa
@@ -109,13 +106,13 @@ _gg_fijarBaldosa:
 	
 	.global _gg_calcIniFondo
 	@;  Rutina que obtiene la dir. de memoria con la primera baldosa de la 
-	@;  ventana pasada por parámetro
-	@; Parámetros:
+	@;  ventana pasada por parÃ¡metro
+	@; ParÃ¡metros:
 	@; 		r0 = ventana
 	@; Retorna: 
 	@; 		r0 --> @memoria 1a baldosa de ventana
 _gg_calcIniFondo:
-	push {r1 - r7, lr}
+	push {r1-r7, lr}
 	ldr r1, =BASE							@; dir. inicial fondo escritura
 	mov r2, #1
 	mov r2, r2, lsl #L2_PPART
@@ -130,6 +127,6 @@ _gg_calcIniFondo:
 	mul r3, r4, r6							@; r3 = 2*VCOLS*columna
 	add r2, r3								
 	add r0, r1, r2							@; r0 = dir. mem. 1er baldosa de la ventana especificada
-	pop {r1 - r7, pc}
+	pop {r1-r7, pc}
+	
 .end
-
