@@ -14,7 +14,7 @@ INI_MEM_PROC = 0x01002000
 
 	.global _gm_zocMem
 _gm_zocMem:	.space NUM_FRANJAS			@; vector de ocupación de franjas mem.
-
+	
 
 .section .itcm,"ax",%progbits
 
@@ -39,12 +39,17 @@ _gm_zocMem:	.space NUM_FRANJAS			@; vector de ocupación de franjas mem.
 	@;Resultado:
 	@; cambio de las direcciones de memoria que se tienen que ajustar
 _gm_reubicar:
-	push {r0-r9,lr}
-	@;ldr r4,[sp,#11*4]
-	@;push {r3,r4}
-	@;push {r1,r2}
-	ldr r3,[r0,#32]		@;Cargamos en r3 header.e_shoff
-	add r4, r0, r3		@;Cargamos en r4 la direccion de memoria del primer byte de la tabla de secciones
+	push {r0-r12,lr}
+	ldr r4,[sp,#14*4]	@;PONEMOS DIRECCIONES ARRIBA DE LA PILA
+	push {r1,r2,r3,r4}
+	
+	ldr r3,[r0,#28]		@;COGEMOS DIRECCION FINAL DEL pAddr_code
+	add r3,r0
+	ldr r3,[r3,#16]
+	add r3,r1
+
+	ldr r4,[r0,#32]		@;Cargamos en r3 header.e_shoff
+	add r4, r0			@;Cargamos en r4 la direccion de memoria del primer byte de la tabla de secciones
 	ldrh r5,[r0,#48] 	@;Cargamos en r5 el num de secciones
 	ldrh r6,[r0,#46]	@;Cargamos en r6 el tamaño de cada seccion
 	mov r7,#0
@@ -59,7 +64,7 @@ _gm_reubicar:
 	mov r12,r11,lsr#3
 	mov r11,r12
 	mov r8, r10
-	mov r10,#0
+	mov r10,#1
 .LRecorrerSeccion:
 	add r8,#8
 	ldr r9,[r8,#4]		@;Cargamos en r9 r_info
@@ -67,6 +72,16 @@ _gm_reubicar:
 	cmp r9,#2	
 	bne .LNoReubicadorAdecuado
 	ldr r9,[r8]   		@;Cargamos en r9 el offset de la direccion a reubicar
+	cmp r9,r3
+	blt .Lcodigo
+	ldr r1,[sp,#8]
+	ldr r2,[sp,#12]
+	b .LReubicar
+.Lcodigo:
+	ldr r1,[sp]
+	ldr r2,[sp,#4]
+.LReubicar:
+	sub r9,r1
 	ldr r12,[r2,r9]
 	sub	r12,r1
 	add r12,r2
@@ -79,8 +94,8 @@ _gm_reubicar:
 	add r7,#1
 	cmp r7,r5
 	blt .LRecorrerSecciones
-
-	pop {r0-r9,pc}
+	pop {r0-r3}
+	pop {r0-r12,pc}
 
 
 	.global _gm_reservarMem
@@ -117,9 +132,6 @@ _gm_reservarMem:
 	cmp r7,#0
 	addeq r6,#1
 	movne r6,#0
-	cmp r7,r0
-	moveq r8,r5	
-	beq .LNoEspacio
 	cmp r6,#1		@;Si trobem primera posicio lliure guardem POSICIO
 	moveq r8,r5	
 	cmp r6,r3		@;Si trobem espai suficientment gran
@@ -130,16 +142,19 @@ _gm_reservarMem:
 	b .LNoEspacio
 .LHayEspacio:
 	mov r5,#0
-	add r4,r8
+	add r4,r8		@;Nos situamos en la primera franja
 .LIntroduceFranja:
 	strb r0,[r4,r5]
 	add r5,#1
 	cmp r5,r3
 	blt .LIntroduceFranja
+	mov r1,r8
+	mov r3,r2
+	mov r2,r6
+	bl _gm_pintarFranjas
 	ldr r6,=INI_MEM_PROC
 	add r5,r6,r8,lsl#5
-	mov r8,r5
-	mov r0,r8
+	mov r0,r5
 	b .LFin
 .LNoEspacio:
 	mov r0,#0
@@ -158,7 +173,6 @@ _gm_reservarMem:
 _gm_liberarMem:
 	push {r1-r9,lr}
 	ldr r1,=_gm_zocMem
-	@;ldr r10,=INI_MEM_PROC
 	mov r2,#0			@;Contador de franjas
 	ldr r3,=NUM_FRANJAS
 	mov r4,#0			@;Contiene el valor 0
@@ -176,7 +190,6 @@ _gm_liberarMem:
 .Lnoprimera:
 	add r8,#1
 	strb r4,[r1,r2]
-	@;str r4,[r10,r2,lsl#2]
 	b .Lnoencontrado
 .Lnofranja:
 	cmp r6,#0
@@ -212,10 +225,86 @@ _gm_liberarMem:
 	@;	R2: el número de franjas a pintar
 	@;	R3: el tipo de segmento reservado (0 -> código, 1 -> datos)
 _gm_pintarFranjas:
-	push {lr}
+	push {r0-r9,lr}
+	
 
+	mov r4,#0x62000000    	@;R4=Base mapa caracteres    
+	add r4,#0x4000			@;R4=Base contenido baldosas
+	add r4,#0x8000			@;R4=Base de baldosas para gestion de memoria
+	
+	ldr r5,=_gs_colZoc
+	ldrb r7,[r5,r0]			@;R7= Cogemos color
+	
+	mov r6, r1				@;R6= RESTO (franjas de baldos a saltar)
+	mov r5,#0				@;R5= Num baldosas a saltar
+.Ldiv:
+	cmp r6,#8
+	blt .LCalcOff
+	sub r6,#8
+	add r5,#1
+	b .Ldiv
+	
+	
+.LCalcOff:
+	mov r5,r5,lsl#6			@;Calculamos numero de bytes a desplazar
+	add r4,r5				@;R4= Primer byte de la baldosa a pintar
+	add r4,r6				@;R4= Primer byte a pintar
+	mov r9,r6				@;R9= Num de franjas pintadas de baldosa
 
-	pop {pc}
+	cmp r3,#0
+	mov r8,#0
+	beq .LCodigo
+.LDatos:
+	cmp r8,#0
+	bne .Limpar
+.Lpar:
+	strh r7,[r4,#16]
+	strh r7,[r4,#32]
+	sub r2,#1
+	add r9,#1
+	cmp r9,#8
+	bne .LnoFinalBald1
+	add r4,#55				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
+	mov r9,#0
+.LnoFinalBald1:
+	add r4,#1
+	mov r8,#1
+	cmp r2,#0
+	bne .LDatos
+	b .Lfin
+.Limpar:
+	strh r7,[r4,#24]
+	strh r7,[r4,#40]
+	sub r2,#1
+	add r9,#1
+	cmp r9,#8
+	bne .LnoFinalBald2
+	add r4,#55				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
+	mov r9,#0
+.LnoFinalBald2:
+	add r4,#1
+	mov r8,#0
+	cmp r2,#0
+	bne .LDatos
+	b .Lfin
+.LCodigo:	
+	strh r7,[r4,#16]
+	strh r7,[r4,#24]
+	strh r7,[r4,#32]
+	strh r7,[r4,#40]
+	sub r2,#1
+	add r9,#1
+	cmp r9,#8
+	bne .LnoFinalBald3
+	add r4,#55				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
+	mov r9,#0
+.LnoFinalBald3:
+	add r4,#1
+	cmp r2,#0
+	bne .LCodigo
+	
+.Lfin:	
+	pop {r0-r9,pc}
 
 
 

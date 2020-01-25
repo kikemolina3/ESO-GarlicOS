@@ -49,25 +49,6 @@ typedef struct{
 	unsigned long int p_align;
 }Elf32_Phdr;
 
-/*TABLA DE SECCIONES*/
-typedef struct{
-	unsigned long int sh_name;
-	unsigned long int sh_type;
-	unsigned long int sh_flags;
-	unsigned long int sh_addr;
-	unsigned long int sh_offset;
-	unsigned long int sh_size;
-	unsigned long int sh_link;
-	unsigned long int sh_info;
-	unsigned long int sh_addralign;
-	unsigned long int sh_entsize;
-}Elf32_Shdr;
-
-/*REUBICADORES*/
-typedef struct{
-	unsigned long int r_offset;
-	unsigned long int r_info;
-}Elf32_Rel;
 
 /* _gm_initFS: inicializa el sistema de ficheros, devolviendo un valor booleano
 					para indiciar si dicha inicialización ha tenido éxito; */
@@ -147,12 +128,13 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 	
 	
 	if(prog){
-		fseek(prog,0,SEEK_END);
+		fseek(prog,0,SEEK_END);						//LEEMOS TODO EL FICHERO Y LO GUARDAMOS EN BUFFAUX
 		size=ftell(prog);
 		buffAux=malloc(size);
 		fseek(prog,0,SEEK_SET);
 		fread(buffAux,1,size,prog);
 		//buffAux contiene todo el fichero ELF
+		
 		header=malloc(sizeof(Elf32_Ehdr));
 		if(header)
 		{
@@ -166,14 +148,13 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 			if(segment)
 			{
 				while((numSeg<header->e_phnum) && (hay_espacio))
-				{
-					pos=header->e_phoff+(numSeg*header->e_phentsize);	//COGEMOS SEGMENTO
+				{ 	
+					//COGEMOS SEGMENTO
+					pos=header->e_phoff+(numSeg*header->e_phentsize);	
 					fseek(prog,pos,SEEK_SET);
 					fread(&segment[numSeg],1,sizeof(Elf32_Phdr),prog);
 					
-					if(segment[numSeg].p_type==1){
-						
-						
+					if(segment[numSeg].p_type==1){				
 						
 						if(segment[numSeg].p_flags == 5){
 							ph_type=0;
@@ -181,12 +162,11 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 							ph_type=1;
 						}
 						//Reservamos memoria
+						
 						puntero[numSeg]=(int) _gm_reservarMem(zocalo,segment[numSeg].p_memsz,ph_type);
 						if(puntero[numSeg] != 0) //HAY ESPACIO
 						{
-							if(segment[numSeg].p_flags == 5){	//SI ES DE CODIGO GUARDAMOS DIR INICIAL
-								adresaFinal = puntero[numSeg] + offset;
-							}
+							if(segment[numSeg].p_flags == 5){ adresaFinal = puntero[numSeg] + offset;} //SI ES DE CODIGO GUARDAMOS DIR INICIAL
 							segment[numSeg].p_offset +=(int) buffAux;
 							_gs_copiaMem((const void *)segment[numSeg].p_offset,(void *) puntero[numSeg],segment[numSeg].p_filesz);
 							

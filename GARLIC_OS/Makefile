@@ -76,7 +76,7 @@ CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 AFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin)))
  
-export OFILES	:=	$(BINFILES:.bin=.o) $(CFILES:.c=.o)
+export OFILES	:=	$(BINFILES:.bin=.o) $(CFILES:.c=.o) 
 export SFILES	:=	$(AFILES:.s=.o)
 
 # GARLIC_API is the directory where the API's include and source code lives

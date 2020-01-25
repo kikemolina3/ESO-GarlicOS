@@ -8,7 +8,7 @@
 
 ------------------------------------------------------------------------------*/
 #include <nds.h>
-
+#include <stdio.h>
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
@@ -17,7 +17,7 @@ char indicadoresTeclas[8] = {'^', '>', 'v', '<', 'A', 'B', 'L', 'R'};
 unsigned short bitsTeclas[8] = {KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT, KEY_A, KEY_B,
 									KEY_L, KEY_R};
 
-
+unsigned int quo,res;
 const short divFreq1 = -33513982/(1024*7);		// frecuencia de TIMER1 = 7 Hz
 
 
@@ -169,12 +169,12 @@ int main(int argc, char **argv) {
 				
 				start = _gm_cargarPrograma(zocalo, progs[ind_prog]);
 				if (start)
-				{	//_gp_crearProc(start, zocalo, progs[ind_prog], zocalo-1);
+				{	_gp_crearProc(start, zocalo, progs[ind_prog], zocalo-1);
 					_gg_escribir("*** Programa cargado!\n\n\t", 0, 0, 0);
 					_gg_escribir("%d: %s.elf\n\n", zocalo, (unsigned int) progs[ind_prog],0);
-					start(1);
+					_gp_WaitForVBlank();
 					//_gm_liberarMem(zocalo);
-				}
+				}else{_gg_escribir("*** Programa NO cargado\n\n\t", 0, 0, 0);}
 			}
 		}
 	}
