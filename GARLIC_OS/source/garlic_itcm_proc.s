@@ -238,13 +238,13 @@ _gp_numProc:
 _gp_crearProc:
 	push {r4-r7, lr}
 	cmp r1, #0						@; Se comprueba si el zócalo es 0, es decir, si corresponde al proceso del sistema operativo.  
-	beq .L_fin_crearProc			@; En caso afirmativo, se termina la ejecución de la rutina de creación de proceso.
+	beq .L_no_crearProc				@; En caso afirmativo, se termina la ejecución de la rutina de creación de proceso.
 	ldr r5, =_gd_pcbs				@; Se carga la dirección de memoria del vector de PCBs.
 	mov r4, #24						@; El zócalo se deberá multiplicar por 24 para acceder al PCB que se asignará al proceso que se quiere crear.
 	mla r4, r1, r4, r5				@; Se cálcula el índice para acceder al PID del proceso correspondiente al zócalo. El PID es el primer campo del PCB.
 	ldr r5, [r4]					@; Se carga el PID del proceso corresponidente al zócalo.
-	cmp r5, #0						@; Se comprueba si el PID es 0, es decir, si el zócalo ya está ocupado por otro proceso.
-	bne .L_fin_crearProc			@; En caso afirmativo, se termina la ejecución de la rutina de creación de proceso.
+	cmp r5, #0						@; Se comprueba si el PID no es 0, es decir, si el zócalo ya está ocupado por otro proceso.
+	bne .L_no_crearProc				@; En caso afirmativo, se termina la ejecución de la rutina de creación de proceso.
 	ldr r5, =_gd_pidCount			@; Se carga la dirección de memoria en donde se almacena el contador de PIDs.
 	ldr r6, [r5]					@; Se carga el valor del contador de PIDs.
 	add r6, #1						@; Se incrementa el valor del contador de PIDs.
@@ -275,10 +275,16 @@ _gp_crearProc:
 	str r5, [r4, #20]				@; Se almacenará el valor incial del contador de tics de trabajo en el campo correspondiente del vector de PCBs.
 	ldr r4, =_gd_qReady				@; Se carga la dirección base de la cola de Ready.
 	ldr r5, =_gd_nReady				@; Se carga la dirección de memoria que contiene el número de proceso en la cola de Ready.
+	bl _gp_inhibirIRQs
 	ldr r6, [r5]					@; Se carga el valor del número de procesos en la cola de Ready.
 	strb r1, [r4, r6]				@; Se almacena el zócalo del proceso creado en la última posición de la cola de Ready.
 	add r6, #1						@; Se incrementa el número de procesos en la cola de Ready.
 	str r6, [r5]					@; Se almacena el nuevo valor del número de procesos en la dirección de memoria correspondiente.
+	bl _gp_desinhibirIRQs
+	mov r0, #0
+	b .L_fin_crearProc
+.L_no_crearProc:
+	mov r0, #1
 .L_fin_crearProc:
 	pop {r4-r7, pc}
 	
@@ -292,6 +298,7 @@ _gp_terminarProc:
 	ldr r0, =_gd_pidz
 	ldr r1, [r0]			@; R1 = valor actual de PID + zócalo
 	and r1, r1, #0xf		@; R1 = zócalo del proceso desbancado
+	bl _gp_inhibirIRQs
 	str r1, [r0]			@; guardar zócalo con PID = 0, para no salvar estado			
 	ldr r2, =_gd_pcbs
 	mov r10, #24
@@ -306,6 +313,7 @@ _gp_terminarProc:
 	mov r3, r3, lsl r1		@; R3 = máscara con bit correspondiente al zócalo
 	orr r2, r3
 	str r2, [r0]			@; actualizar variable de sincronismo
+	bl _gp_desinhibirIRQs
 .LterminarProc_inf:
 	bl _gp_WaitForVBlank	@; pausar procesador
 	b .LterminarProc_inf	@; hasta asegurar el cambio de contexto
@@ -359,15 +367,17 @@ _gp_actualizarDelay:
 	@; Parámetros:
 	@;	R0:	zócalo del proceso a matar (entre 1 y 15).
 _gp_matarProc:
-	push {r0-r4, lr}
+	push {r0-r5, lr}
 	mov r1, #24
 	ldr r2, =_gd_pcbs
 	mla r1, r0, r1, r2
 	mov r2, #0
-	str r2, [r1]					@; Se pone el PID correspondiente al proceso que se quiere matar a 0. Así se indica que el zócalo está libre.
 	ldr r3, =_gd_nReady
-	ldr r2, [r3]
 	ldr r4, =_gd_qReady
+	ldr r5, =_gd_qDelay
+	bl _gp_inhibirIRQs
+	str r2, [r1]					@; Se pone el PID correspondiente al proceso que se quiere matar a 0. Así se indica que el zócalo está libre.
+	ldr r2, [r3]
 .L_buscar_en_qReady:
 	ldr r1, [r4]
 	cmp r0, r1					
@@ -388,22 +398,21 @@ _gp_matarProc:
 .L_qDelay:
 	ldr r3, =_gd_nDelay
 	ldr r2, [r3]
-	ldr r4, =_gd_qDelay
 .L_buscar_qDelay:
-	ldr r1, [r4]
+	ldr r1, [r5]
 	mov r1, r1, lsr #24				@; Se filtra el número de tics para obtener el zócalo.
 	cmp r0, r1
 	beq .L_preDesplazar_qDelay		@; Si ambos zócalos coinciden se procede a desplazar todos los procesos restantes de la cola de Delay a la posición anterior.
-	add r4, #4
+	add r5, #4
 	subs r2, #1
 	bhi .L_buscar_qDelay
 	b .L_fin_matarProc				@; Si no se ha encontrado el proceso en la cola de Delay, se termina la ejecución de la rutina.
 .L_preDesplazar_qDelay:
 	sub r2, #1				
 .L_desplazar_qDelay:
-	ldr r0, [r4, #4]
-	str r0, [r4]
-	add r4, #4
+	ldr r0, [r5, #4]
+	str r0, [r5]
+	add r5, #4
 	subs r2, #1
 	bhi .L_desplazar_qDelay
 .L_modificar_nProcQueue:
@@ -411,7 +420,8 @@ _gp_matarProc:
 	sub r2, #1
 	str r2, [r3]					@; Si se ha encontrado el proceso en alguna de las dos colas, el número de procesos de dicha cola se deberá decrementar en una unidad.
 .L_fin_matarProc:
-	pop {r0-r4, pc}
+	bl _gp_desinhibirIRQs
+	pop {r0-r5, pc}
 	
 	.global _gp_retardarProc
 	@; retarda la ejecución de un proceso durante cierto número de segundos,
