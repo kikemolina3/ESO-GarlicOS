@@ -225,15 +225,16 @@ _gm_liberarMem:
 	@;	R2: el número de franjas a pintar
 	@;	R3: el tipo de segmento reservado (0 -> código, 1 -> datos)
 _gm_pintarFranjas:
-	push {r0-r9,lr}
+	push {r0-r11,lr}
 	
 
-	mov r4,#0x62000000    	@;R4=Base mapa caracteres    
-	add r4,#0x4000			@;R4=Base contenido baldosas
-	add r4,#0x8000			@;R4=Base de baldosas para gestion de memoria
+	mov r4,#0x6200000    	@;R4=Base mapa caracteres    
+	add r4,#0xc000			@;tile num: 768 * 64 bytes baldosa
 	
 	ldr r5,=_gs_colZoc
 	ldrb r7,[r5,r0]			@;R7= Cogemos color
+	@;mov r10,r7,lsl#8
+	@;add r7,r10,r7
 	
 	mov r6, r1				@;R6= RESTO (franjas de baldos a saltar)
 	mov r5,#0				@;R5= Num baldosas a saltar
@@ -254,6 +255,8 @@ _gm_pintarFranjas:
 	cmp r3,#0
 	mov r8,#0
 	beq .LCodigo
+	and r11,r7,#0xFF00
+	and r7,#0xFF
 .LDatos:
 	cmp r8,#0
 	bne .Limpar
@@ -264,7 +267,7 @@ _gm_pintarFranjas:
 	add r9,#1
 	cmp r9,#8
 	bne .LnoFinalBald1
-	add r4,#55				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
+	add r4,#56				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
 	mov r9,#0
 .LnoFinalBald1:
 	add r4,#1
@@ -273,13 +276,13 @@ _gm_pintarFranjas:
 	bne .LDatos
 	b .Lfin
 .Limpar:
-	strh r7,[r4,#24]
-	strh r7,[r4,#40]
+	strh r11,[r4,#24]
+	strh r11,[r4,#40]
 	sub r2,#1
 	add r9,#1
 	cmp r9,#8
 	bne .LnoFinalBald2
-	add r4,#55				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
+	add r4,#56				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
 	mov r9,#0
 .LnoFinalBald2:
 	add r4,#1
@@ -287,8 +290,11 @@ _gm_pintarFranjas:
 	cmp r2,#0
 	bne .LDatos
 	b .Lfin
-.LCodigo:	
-	strh r7,[r4,#16]
+.LCodigo:
+	ldrh r11,[r4,#16]
+	and  r11,#0xFF00
+	orr  r11,r7
+	strh r11,[r4,#16]
 	strh r7,[r4,#24]
 	strh r7,[r4,#32]
 	strh r7,[r4,#40]
@@ -296,7 +302,7 @@ _gm_pintarFranjas:
 	add r9,#1
 	cmp r9,#8
 	bne .LnoFinalBald3
-	add r4,#55				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
+	add r4,#56				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
 	mov r9,#0
 .LnoFinalBald3:
 	add r4,#1
@@ -304,7 +310,8 @@ _gm_pintarFranjas:
 	bne .LCodigo
 	
 .Lfin:	
-	pop {r0-r9,pc}
+
+	pop {r0-r11,pc}
 
 
 
@@ -312,10 +319,64 @@ _gm_pintarFranjas:
 	@; Rutina de Servicio de Interrupción (RSI) para actualizar la representa-
 	@; ción de la pila y el estado de los procesos activos.
 _gm_rsiTIMER1:
-	push {lr}
+	push {r0-r10,lr}
+	ldr r0,=_gd_pidCount
+	ldr r1,[r0]				@;R1 sera contador
+	sub r2,r1,#1			@;R2 sera num_proces
+	mov r3,#0x6200000			@;R3 sera la direccio del mapa de baldoses
+	add r3,r3,#46 				@; 25 baldoses * 2 bytes
+	ldr r4,=_gd_pcbs		@;R4 vector pcbs
+	mov r5,#119				@;Num baldosa inicial
+	
+	
+	
+	
+.LperProc:
+    mov r0,#24
+	mul r6,r2,r0			@;R6 indice
+	ldr r7,[r6,#8]			@;R7 es SP
+	sub r7,#0x1000000
+	mov r8,#0
+	mov r10,#0					
+.LdivBald:
+	cmp r7,#0				@;Dividimos SP entre bits que representa franja
+	ble .LBaldosas
+	sub r7,#32
+	add r8,#1
+	cmp r8,#8
+	bne .LdivBald
+	add r0,r5,#2
+	add r9,r2,#5
+	mov r9,r9,lsl#6
+	add r9,r3
+	mov r10,r10,lsl#1
+	strh r0, [r9, r10]
+	mov r10,r10,lsr#1
+	add r9,#1
+	b .LdivBald
+.LBaldosas:
+	cmp r10,#2
+	bge .LEstado
+	add r0,r5,r8
+	add r9,r2,#5
+	mov r9,r9,lsl#6
+	add r9,r3
+	mov r10,r10,lsl#1
+	strh r0, [r9, r10]
+	mov r10,r10,lsr#1
+	add r10,#1
+	mov r8,#0
+	b .LBaldosas
+.LEstado:
 
+.LAcabadoEstado:
+	sub r1,#1
+	sub r2,#1
+	cmp r1,#0
+	bgt .LperProc
+	
 
-	pop {pc}
+	pop {r0-r10,pc}
 
 
 .end
