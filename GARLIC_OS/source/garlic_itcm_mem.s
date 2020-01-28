@@ -264,7 +264,7 @@ _gm_pintarFranjas:
 	
 	cmp r6,#1
 	beq .LBitsAltosD
-	@;BITS BAJOS
+							@;Se pintan los bits 1 y 3 de la franja izquierda del conjunto
 	ldrh r11,[r4,#16]
 	and r11,#0xFF00
 	orr r11,r9
@@ -279,7 +279,7 @@ _gm_pintarFranjas:
 	blt .LDatos
 	b .Lfin
 	
-.LBitsAltosD:
+.LBitsAltosD:				@;Se pintan los bits 2 y 4 de la franja derecha del conjunto
 	ldrh r11,[r4,#24]
 	and r11,#0xFF
 	orr r11,r10
@@ -303,10 +303,9 @@ _gm_pintarFranjas:
 	
 	
 .LCodigo:
-	
 	cmp r6,#1
 	beq .LBitsAltosC
-	@;BITS BAJOS
+						@;Se pinta la franja izquierda del conjunto
 	ldrh r11,[r4,#16]
 	and r11,#0xFF00
 	orr r11,r9
@@ -329,7 +328,7 @@ _gm_pintarFranjas:
 	blt .LCodigo
 	b .Lfin
 	
-.LBitsAltosC:
+.LBitsAltosC:				@;Se pinta la franja derecha del conjunto
 	ldrh r11,[r4,#16]
 	and r11,#0xFF
 	orr r11,r10
@@ -359,7 +358,6 @@ _gm_pintarFranjas:
 	blt .LCodigo
 	
 .Lfin:	
-
 	pop {r0-r11,pc}
 
 
@@ -368,64 +366,121 @@ _gm_pintarFranjas:
 	@; Rutina de Servicio de Interrupción (RSI) para actualizar la representa-
 	@; ción de la pila y el estado de los procesos activos.
 _gm_rsiTIMER1:
-	push {r0-r10,lr}
-	ldr r0,=_gd_pidCount
-	ldr r1,[r0]				@;R1 sera contador
-	sub r2,r1,#1			@;R2 sera num_proces
-	mov r3,#0x6200000			@;R3 sera la direccio del mapa de baldoses
-	add r3,r3,#46 				@; 25 baldoses * 2 bytes
-	ldr r4,=_gd_pcbs		@;R4 vector pcbs
-	mov r5,#119				@;Num baldosa inicial
+	push {r0-r12,lr}
+	mov r0,#0x6200000
+	ldr r1,=0x12e
+	add r0,r1
+	ldr r1,=_gd_pcbs
+	ldr r2,=_gd_stacks
+	ldr r3,=0xB003D00
+	mov r4,#0
+	mov r12,#119
 	
-	
-	
-	
-.LperProc:
-    mov r0,#24
-	mul r6,r2,r0			@;R6 indice
-	ldr r7,[r6,#8]			@;R7 es SP
-	sub r7,#0x1000000
-	mov r8,#0
-	mov r10,#0					
-.LdivBald:
-	cmp r7,#0				@;Dividimos SP entre bits que representa franja
-	ble .LBaldosas
-	sub r7,#32
-	add r8,#1
-	cmp r8,#8
-	bne .LdivBald
-	add r0,r5,#2
-	add r9,r2,#5
-	mov r9,r9,lsl#6
-	add r9,r3
-	mov r10,r10,lsl#1
-	strh r0, [r9, r10]
-	mov r10,r10,lsr#1
-	add r9,#1
-	b .LdivBald
-.LBaldosas:
-	cmp r10,#2
-	bge .LEstado
-	add r0,r5,r8
-	add r9,r2,#5
-	mov r9,r9,lsl#6
-	add r9,r3
-	mov r10,r10,lsl#1
-	strh r0, [r9, r10]
-	mov r10,r10,lsr#1
-	add r10,#1
-	mov r8,#0
-	b .LBaldosas
-.LEstado:
+.LporProceso:
+	mov r11,#0
+	cmp r4,#0
+	beq .LSO
+	mov r5,#24
+	mul r5,r4
+	ldr r6,[r1,r5]				@;Miramos si PID activo
+	cmp r6,#0
+	mov r7,r12
+	mov r8,r12
+	beq .LCambiarBald
+	add r5,#8
+	ldr r6,[r1,r5]				@;R6= SP
+	add r5,r2,r4,lsl#9
+	sub r5,r6
+.LnConfig:
+	cmp r5,#32
+	blt .LPonerBald
+	sub r5,#32
+	add r11,#1
+	b .LnConfig
 
-.LAcabadoEstado:
-	sub r1,#1
-	sub r2,#1
-	cmp r1,#0
-	bgt .LperProc
-	
 
-	pop {r0-r10,pc}
+.LSO:
+	mov r5,#24
+	mul r5,r4
+	add r5,#8
+	ldr r6,[r1,r5]				@;R6= SP
+	cmp r6,#0
+	mov r7,r12
+	mov r8,r12
+	beq .LCambiarBald
+	sub r5,r3,r6
+.LnConfigSO:
+	cmp r5,#61
+	blt .LPonerBald
+	sub r5,#61
+	add r11,#1
+	b .LnConfigSO
+	
+.LPonerBald:	
+	cmp r11,#8
+	bge .LCompleta
+	add r7,r12,r11
+	mov r8,r12
+	b .LCambiarBald
+.LCompleta:
+	sub r11,#8
+	add r7,r12,#8
+	add r8,r12,r11
+.LCambiarBald:
+	strh r7,[r0]
+	add r0,#2
+	strh r8,[r0]
+	add r0,#4
+	mov r11,#0
+	strh r11,[r0]
+	add r0,#58
+	add r4,#1
+	cmp r4,#16
+	blt .LporProceso
+	
+	@;AQUI EMPIEZA REPRESENTACION DE ESTADO
+	mov r0,#0x6200000
+	ldr r1,=0x134
+	add r0,r1 
+	mov r1,#178			@; R azul
+	ldr r2,=_gd_pidz
+	and r2,#0xF			@;Nos quedamos con zocalo de proceso RUN
+	mov r2,r2,lsl#6
+	strh r1,[r0,r2]
+	@;Miramos cola de ready
+	mov r1,#57			@; Y blanca
+	ldr r2,=_gd_qReady
+	ldr r3,=_gd_nReady
+	ldr r3,[r3]
+	mov r4,#0
+.LPerProcRdy:
+	cmp r3,#0
+	beq .LfinRdy
+	ldrb r5,[r2,r4]
+	mov r5,r5,lsl#6
+	strh r1,[r0,r5]
+	add r4,#1
+	sub r3,#1
+	b .LPerProcRdy
+.LfinRdy:
+	mov r1,#34			@; B blanca
+	ldr r2,=_gd_qDelay
+	ldr r3,=_gd_nDelay
+	ldr r3,[r3]
+	mov r4,#0
+.LPerProcDly:
+	cmp r3,#0
+	beq .LfinDly
+	ldrb r5,[r2,r4]
+	and r5,#0xFF0000
+	mov r5,r5,lsr#7
+	strh r1,[r0,r5]
+	add r4,#1
+	sub r3,#1
+	b .LPerProcDly
+.LfinDly:
+	
+	pop {r0-r12,pc}
 
 
 .end
