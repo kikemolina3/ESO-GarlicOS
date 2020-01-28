@@ -232,82 +232,131 @@ _gm_pintarFranjas:
 	add r4,#0xc000			@;tile num: 768 * 64 bytes baldosa
 	
 	ldr r5,=_gs_colZoc
-	ldrb r7,[r5,r0]			@;R7= Cogemos color
-	@;mov r10,r7,lsl#8
-	@;add r7,r10,r7
+	ldrb r9,[r5,r0]			@;R9= Cogemos color (bits bajos)
+	mov r10,r9,lsl#8		@;R10= Color bits altos
 	
-	mov r6, r1				@;R6= RESTO (franjas de baldos a saltar)
+	mov r6, r1				@;R6= bit (1 para marcar bits altos 0 para marcar bits bajos)
 	mov r5,#0				@;R5= Num baldosas a saltar
-.Ldiv:
+	mov r7,#0				@;R7= resto que saltaremos
+.LnBaldJump:
 	cmp r6,#8
-	blt .LCalcOff
+	blt .LnFranjJump
 	sub r6,#8
 	add r5,#1
-	b .Ldiv
+	b .LnBaldJump	
 	
+.LnFranjJump:
+	cmp r6,#2
+	blt .LCalcOff
+	sub r6,#2
+	add r7,#2
+	b .LnFranjJump
 	
 .LCalcOff:
 	mov r5,r5,lsl#6			@;Calculamos numero de bytes a desplazar
 	add r4,r5				@;R4= Primer byte de la baldosa a pintar
-	add r4,r6				@;R4= Primer byte a pintar
-	mov r9,r6				@;R9= Num de franjas pintadas de baldosa
+	add r4,r7				@;R4= Primer byte a pintar
+	mov r8,#0				@;R8= Contador de franjas
 
 	cmp r3,#0
-	mov r8,#0
 	beq .LCodigo
-	and r11,r7,#0xFF00
-	and r7,#0xFF
 .LDatos:
-	cmp r8,#0
-	bne .Limpar
-.Lpar:
-	strh r7,[r4,#16]
-	strh r7,[r4,#32]
-	sub r2,#1
-	add r9,#1
-	cmp r9,#8
-	bne .LnoFinalBald1
-	add r4,#56				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
-	mov r9,#0
-.LnoFinalBald1:
-	add r4,#1
-	mov r8,#1
-	cmp r2,#0
-	bne .LDatos
-	b .Lfin
-.Limpar:
-	strh r11,[r4,#24]
-	strh r11,[r4,#40]
-	sub r2,#1
-	add r9,#1
-	cmp r9,#8
-	bne .LnoFinalBald2
-	add r4,#56				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
-	mov r9,#0
-.LnoFinalBald2:
-	add r4,#1
-	mov r8,#0
-	cmp r2,#0
-	bne .LDatos
-	b .Lfin
-.LCodigo:
+	
+	cmp r6,#1
+	beq .LBitsAltosD
+	@;BITS BAJOS
 	ldrh r11,[r4,#16]
-	and  r11,#0xFF00
-	orr  r11,r7
+	and r11,#0xFF00
+	orr r11,r9
 	strh r11,[r4,#16]
-	strh r7,[r4,#24]
-	strh r7,[r4,#32]
-	strh r7,[r4,#40]
-	sub r2,#1
-	add r9,#1
-	cmp r9,#8
-	bne .LnoFinalBald3
-	add r4,#56				@;(64 baldosa - 8 columnas -1 bytes sumado siguiente)
-	mov r9,#0
-.LnoFinalBald3:
-	add r4,#1
-	cmp r2,#0
-	bne .LCodigo
+	ldrh r11,[r4,#32]
+	and r11,#0xFF00
+	orr r11,r9
+	strh r11,[r4,#32]
+	add r6,#1
+	add r8,#1
+	cmp r8,r2
+	blt .LDatos
+	b .Lfin
+	
+.LBitsAltosD:
+	ldrh r11,[r4,#24]
+	and r11,#0xFF
+	orr r11,r10
+	strh r11,[r4,#24]
+	ldrh r11,[r4,#40]
+	and r11,#0xFF
+	orr r11,r10
+	strh r11,[r4,#40]
+	cmp r7,#6
+	bne .LnofinalD
+	add r4,#56
+	mov r7,#-2
+.LnofinalD:
+	add r4,#2
+	sub r6,#1
+	add r8,#1
+	add r7,#2
+	cmp r8,r2
+	blt .LDatos
+	
+	
+	
+.LCodigo:
+	
+	cmp r6,#1
+	beq .LBitsAltosC
+	@;BITS BAJOS
+	ldrh r11,[r4,#16]
+	and r11,#0xFF00
+	orr r11,r9
+	strh r11,[r4,#16]
+	ldrh r11,[r4,#24]
+	and r11,#0xFF00
+	orr r11,r9
+	strh r11,[r4,#24]
+	ldrh r11,[r4,#32]
+	and r11,#0xFF00
+	orr r11,r9
+	strh r11,[r4,#32]
+	ldrh r11,[r4,#40]
+	and r11,#0xFF00
+	orr r11,r9
+	strh r11,[r4,#40]
+	add r6,#1
+	add r8,#1
+	cmp r8,r2
+	blt .LCodigo
+	b .Lfin
+	
+.LBitsAltosC:
+	ldrh r11,[r4,#16]
+	and r11,#0xFF
+	orr r11,r10
+	strh r11,[r4,#16]
+	ldrh r11,[r4,#24]
+	and r11,#0xFF
+	orr r11,r10
+	strh r11,[r4,#24]
+	ldrh r11,[r4,#32]
+	and r11,#0xFF
+	orr r11,r10
+	strh r11,[r4,#32]
+	ldrh r11,[r4,#40]
+	and r11,#0xFF
+	orr r11,r10
+	strh r11,[r4,#40]
+	cmp r7,#6
+	bne .LnofinalC
+	add r4,#56
+	mov r7,#-2
+.LnofinalC:
+	add r4,#2
+	sub r6,#1
+	add r8,#1
+	add r7,#2
+	cmp r8,r2
+	blt .LCodigo
 	
 .Lfin:	
 
