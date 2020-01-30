@@ -45,4 +45,13 @@ _gd_wbfs:	.space 16 * (4 + 64)
 	.global _gd_stacks			@; Vector de pilas de los procesos activos
 _gd_stacks:	.space 15 * 128 * 4
 
+	.global _gd_cuociente 
+_gd_cuociente: .space 4
+
+	.global _gd_resto 
+_gd_resto: .space 4
+
+	.global _gd_numeroString 
+_gd_numeroString: .space 4
+
 .end

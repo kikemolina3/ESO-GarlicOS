@@ -5,6 +5,8 @@
 @;
 @;==============================================================================
 
+
+
 .section .itcm,"ax",%progbits
 
 	.arm
@@ -74,7 +76,7 @@ _gp_rsiVBL:
 	add r5, #1						@; Se incrementa una unidad el contador de tics.
 	str r5, [r4]					@; Se guarda de nuevo en memoria el nuevo valor del contador de tics.
 	ldr r4, =_gd_qReady				@; Se carga la dirección de memoria del identificador de proceso + zócalo.
-	ldr r5, [r4]
+	ldrb r5, [r4]
 	ldr r6, =_gd_pcbs
 	mov r4, #24
 	mla r4, r5, r4, r6				@; Se calcula la dirección base del pcb del proceso que entra en ejecución.
@@ -132,7 +134,7 @@ _gp_salvarProc:
 	ldr r8, [r8, #40]				@; Se carga el valor del registro 0 del proceso antes de que este fuese desbancado.
 	push {r8-r11}					@; Se apila los contenido de los registros 0, 1, 2 y 3 en la pila del proceso.
 	ldrb r8, [r6]					@; Se carga el contenido de la variable _gd_pidz.
-	and r9, #0xF					@; Se filtran los 28 bits correspondientes al identificador de proceso.
+	and r9, r8, #0xF				@; Se filtran los 28 bits correspondientes al identificador de proceso.
 	mov r10, #24					@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.							 					
 	ldr r11, =_gd_pcbs				@; Se carga la dirección de memoria base del vector de PCBs.
 	mla r10, r9, r10, r11			@; Se obtiene la posición de la variable para almacenar el PC del PCB del proceso a desbancar en el vector de PCBs. Se multiplica el zócalo por 24 y se le suma 4.
@@ -324,7 +326,9 @@ _gp_terminarProc:
 _gp_actualizarDelay:
 	push {r0-r7, lr}		
 	ldr r1, =_gd_nDelay
-	ldr r2, [r1]				
+	ldr r2, [r1]
+	cmp r2, #0
+	beq .L_fin_actualizarDelay
 	mov r3, r2					@; El número de procesos de la cola de Delay estará replicado en dos registros. En uno de ellos actuará como contador del número de procesos que quedan por tratar. En el otro actuará como el número total de procesos bloqueados al final de la ejecución de la rutina.
 	ldr r4, =_gd_qDelay	
 .L_actualizar_qDelay:
@@ -357,6 +361,7 @@ _gp_actualizarDelay:
 	subs r2, #1					@; Se decrementa el número de procesos de la cola de Delay que quedan por tratar.
 	bhi .L_actualizar_qDelay
 	str r3, [r1]
+.L_fin_actualizarDelay:
 	pop {r0-r7, pc}
 	
 	.global _gp_matarProc
@@ -379,7 +384,7 @@ _gp_matarProc:
 	str r2, [r1]					@; Se pone el PID correspondiente al proceso que se quiere matar a 0. Así se indica que el zócalo está libre.
 	ldr r2, [r3]
 .L_buscar_en_qReady:
-	ldr r1, [r4]
+	ldrb r1, [r4]
 	cmp r0, r1					
 	beq .L_preDesplazar_qReady		@; Si ambos zócalos coinciden se procede a desplazar todos los procesos restantes de la cola de Ready a la posición anterior.
 	add r4, #1
@@ -389,8 +394,8 @@ _gp_matarProc:
 .L_preDesplazar_qReady:
 	sub r2, #1
 .L_desplazar_qReady:
-	ldr r0, [r4, #1]
-	str r0, [r4]
+	ldrb r0, [r4, #1]
+	strb r0, [r4]
 	add r4, #1
 	subs r2, #1
 	bhi .L_desplazar_qReady
@@ -476,7 +481,7 @@ _gp_desinhibirIRQs:
 	@; gráfico secundario está correctamente configurado, se imprime en la
 	@; columna correspondiente de la tabla de procesos.
 _gp_rsiTIMER0:
-	push {r0-r9, lr}
+	push {r0-r11, lr}
 	ldr r4, =_gd_pcbs
 	mov r5, #24
 	ldr r6, =_gd_pidz
@@ -488,8 +493,10 @@ _gp_rsiTIMER0:
 	mov r1, r1, lsr #8
 	ldr r7, =_gd_qReady
 	ldr r8, =_gd_nReady
-	ldr r2, [r8]	
-.L_sumar_workTics_qReady:
+	ldr r2, [r8]
+	cmp r2, #0
+	beq .L_fin_sumarWorkTics_qReady
+.L_sumarWorkTics_qReady:
 	ldrb r3, [r7]				@; Se obtiene el zócalo.
 	mla r3, r5, r3, r4
 	ldr r0, [r3, #20]			@; Se obtiene el % de uso de la CPU + tics de trabajo del proceso correspondiente al zócalo.
@@ -497,12 +504,15 @@ _gp_rsiTIMER0:
 	add r1, r0, lsr #8			@; Se filtran los bits correspondientes al % de uso de la CPU y se acumulan en R1.
 	add r7, #1
 	subs r2, #1
-	bhi .L_sumar_workTics_qReady
+	bhi .L_sumarWorkTics_qReady
+.L_fin_sumarWorkTics_qReady:
 	ldr r7, =_gd_qDelay
 	ldr r9, =_gd_nDelay
-	ldr r2, [r9]			
-.L_sumar_workTics_qDelay:
-	ldr r3, [r5]				@; Se obtiene el zócalo.
+	ldr r2, [r9]
+	cmp r2, #0
+	beq .L_fin_sumarWorkTics_qDelay
+.L_sumarWorkTics_qDelay:
+	ldr r3, [r7]				@; Se obtiene el zócalo.
 	mov r3, r3, lsr #24
 	mla r3, r8, r3, r4
 	ldr r0, [r3, #20]			@; Se obtiene el % de uso de la CPU + tics de trabajo del proceso correspondiente al zócalo.
@@ -510,19 +520,27 @@ _gp_rsiTIMER0:
 	add r1, r0, lsr #8			@; Se filtran los bits correspondientes al % de uso de la CPU y se acumulan en R1.
 	add r7, #4
 	subs r2, #1
-	bhi .L_sumar_workTics_qDelay
+	bhi .L_sumarWorkTics_qDelay
+.L_fin_sumarWorkTics_qDelay:
 	mla r7, r5, r6, r4
 	ldr r0, [r7, #20]
 	mov r0, r0, lsl #8
 	mov r0, r0, lsr #8
+	mov r11, #100
+	mul r0, r11, r0				@; Se multiplica por el número de tics por 100 para obtener el resultado de la división como un porcentaje.
+	ldr r2, =_gd_cuociente
+	ldr r3, =_gd_resto
 	bl _ga_divmod
+	ldr r2, [r2]
 	mov r3, r2, lsl #24
 	str r3, [r7, #20]			@; Se almacena el porcentaje de uso de la CPU en la posición correspondiente del PCB con los tics de trabajo a 0.
 	mov r7, r1
-	mov r1, #2
+	ldr r0, =_gd_numeroString
+	mov r1, #3
 	bl _gs_num2str_dec
+	ldr r0, =_gd_numeroString
 	add r1, r6, #4				@; La fila en la que se ha de imprimir el porcentaje de uso de la CPU se calcula sumando 4 al zócalo del proceso.
-	mov r2, #13
+	mov r2, #29
 	ldr r3, =0x7FFF				@; El porcentaje de uso de la CPU se imprimirá en color blanco.
 	bl _gs_escribirStringSub	@; Se imprime de la pantalla de trabajo el porcentaje de uso de la CPU por el proceso en la columna 13 y en la fila correspondiente a dicho proceso
 	mov r1, r7
@@ -534,14 +552,20 @@ _gp_rsiTIMER0:
 	ldr r0, [r10, #20]			@; Se obtienen el % de uso de la CPU + tics de trabajo del proceso correspondiente al zócalo.
 	mov r0, r0, lsl #8
 	mov r0, r0, lsr #8			@; Se filtran los bits correspondientes al porcentaje de uso de la CPU.
-	bl _ga_divmod				@; Se llama a la rutina _ga_divmod para calcular 
+	mul r0, r11, r0				@; Se multiplica por el número de tics por 100 para obtener el resultado de la división como un porcentaje.
+	ldr r2, =_gd_cuociente
+	ldr r3, =_gd_resto
+	bl _ga_divmod				@; Se llama a la rutina _ga_divmod para calcular
+	ldr r2, [r2]
 	mov r3, r2, lsl #24
 	str r3, [r10, #20]			@; Se almacena el porcentaje de uso de la CPU en la posición correspondiente del PCB con los tics de trabajo a 0.
 	mov r10, r1
-	mov r1, #2
+	ldr r0, =_gd_numeroString
+	mov r1, #3
 	bl _gs_num2str_dec
+	ldr r0, =_gd_numeroString
 	add r1, r8, #4				@; La fila en la que se ha de imprimir el porcentaje de uso de la CPU se calcula sumando 4 al zócalo del proceso.
-	mov r2, #13
+	mov r2, #29
 	ldr r3, =0x7FFF				@; El porcentaje de uso de la CPU se imprimirá en color blanco.
 	bl _gs_escribirStringSub	@; Se imprime de la pantalla de trabajo el porcentaje de uso de la CPU por el proceso en la columna 13 y en la fila correspondiente a dicho proceso
 	mov r1, r10
@@ -556,14 +580,20 @@ _gp_rsiTIMER0:
 	ldr r0, [r9, #20]			@; Se obtienen el % de uso de la CPU + tics de trabajo del proceso correspondiente al zócalo.
 	mov r0, r0, lsl #8
 	mov r0, r0, lsr #8			@; Se filtran los bits correspondientes al porcentaje de uso de la CPU.
-	bl _ga_divmod				@; Se llama a la rutina _ga_divmod para calcular 
+	mul r0, r11, r0				@; Se multiplica por el número de tics por 100 para obtener el resultado de la división como un porcentaje.
+	ldr r2, =_gd_cuociente
+	ldr r3, =_gd_resto
+	bl _ga_divmod				@; Se llama a la rutina _ga_divmod para calcular
+	ldr r2, [r2]
 	mov r3, r2, lsl #24
 	str r3, [r9, #20]			@; Se almacena el porcentaje de uso de la CPU en la posición correspondiente del PCB con los tics de trabajo a 0.
 	mov r9, r1
-	mov r1, #2
+	ldr r0, =_gd_numeroString
+	mov r1, #3
 	bl _gs_num2str_dec
+	ldr r0, =_gd_numeroString
 	add r1, r8, #4				@; La fila en la que se ha de imprimir el porcentaje de uso de la CPU se calcula sumando 4 al zócalo del proceso.
-	mov r2, #13
+	mov r2, #29
 	ldr r3, =0x7FFF				@; El porcentaje de uso de la CPU se imprimirá en color blanco.
 	bl _gs_escribirStringSub	@; Se imprime de la pantalla de trabajo el porcentaje de uso de la CPU por el proceso en la columna 13 y en la fila correspondiente a dicho proceso
 	mov r1, r9
@@ -574,7 +604,7 @@ _gp_rsiTIMER0:
 	ldr r1, [r0]
 	orr r1, #1
 	str r1, [r0]				@; Se pone a 1 el bit 0 de la variable global _gd_sincMain. 
-	pop {r0-r9, pc}
+	pop {r0-r11, pc}
 
 
 	
