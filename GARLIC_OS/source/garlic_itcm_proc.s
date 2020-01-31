@@ -133,7 +133,7 @@ _gp_salvarProc:
 	ldr r9, [r8, #44]				@; Se carga el valor del registro 1 del proceso antes de que este fuese desbancado.
 	ldr r8, [r8, #40]				@; Se carga el valor del registro 0 del proceso antes de que este fuese desbancado.
 	push {r8-r11}					@; Se apila los contenido de los registros 0, 1, 2 y 3 en la pila del proceso.
-	ldrb r8, [r6]					@; Se carga el contenido de la variable _gd_pidz.
+	ldr r8, [r6]					@; Se carga el contenido de la variable _gd_pidz.
 	and r9, r8, #0xF				@; Se filtran los 28 bits correspondientes al identificador de proceso.
 	mov r10, #24					@; Cada PCB contien 6 campos de 4 bytes cada uno. En consecuencia, el zócalo se deberá multimplicar por 24 para acceder al PCB correspondiente al proceso desbancado.							 					
 	ldr r11, =_gd_pcbs				@; Se carga la dirección de memoria base del vector de PCBs.
@@ -444,7 +444,7 @@ _gp_retardarProc:
 	ldr r0, =_gd_qDelay
 	ldr r3, =_gd_nDelay
 	ldr r1, [r3]
-	str r2, [r0, r1]			@; Se almacena el valor del zócalo + el número de tics en la última posición de la cola de Delay.
+	str r2, [r0, r1, lsl #2]	@; Se almacena el valor del zócalo + el número de tics en la última posición de la cola de Delay.
 	add r1, #1
 	str r1, [r3]				@; Se incrementa el número de procesos en la cola de Delay.
 	bl _gp_WaitForVBlank		@; Se fuerza la cesión de la CPU a la espera de que se produzca un nuevo retroceso vertical.
@@ -514,7 +514,7 @@ _gp_rsiTIMER0:
 .L_sumarWorkTics_qDelay:
 	ldr r3, [r7]				@; Se obtiene el zócalo.
 	mov r3, r3, lsr #24
-	mla r3, r8, r3, r4
+	mla r3, r5, r3, r4
 	ldr r0, [r3, #20]			@; Se obtiene el % de uso de la CPU + tics de trabajo del proceso correspondiente al zócalo.
 	mov r0, r0, lsl #8
 	add r1, r0, lsr #8			@; Se filtran los bits correspondientes al % de uso de la CPU y se acumulan en R1.
@@ -546,7 +546,9 @@ _gp_rsiTIMER0:
 	mov r1, r7
 	ldr r7, =_gd_qReady
 	ldr r6, [r8]
-.L_calcular_porcentaje_qReady:
+	cmp r6, #0
+	beq .L_finCalcularPorcentaje_qReady
+.L_calcularPorcentaje_qReady:
 	ldrb r8, [r7]				@; Se obtiene el zócalo.
 	mla r10, r5, r8, r4
 	ldr r0, [r10, #20]			@; Se obtienen el % de uso de la CPU + tics de trabajo del proceso correspondiente al zócalo.
@@ -571,11 +573,15 @@ _gp_rsiTIMER0:
 	mov r1, r10
 	add r7, #1
 	subs r6, #1
-	bhi .L_calcular_porcentaje_qReady
+	bhi .L_calcularPorcentaje_qReady
+.L_finCalcularPorcentaje_qReady:
 	ldr r7, =_gd_qDelay
 	ldr r6, [r9]
-.L_calcular_porcentaje_qDelay:
+	cmp r6, #0
+	beq .L_finCalcularPorcentaje_qDelay
+.L_calcularPorcentaje_qDelay:
 	ldr r8, [r7]				@; Se obtiene el zócalo.
+	mov r8, r8, lsr #24
 	mla r9, r5, r8, r4
 	ldr r0, [r9, #20]			@; Se obtienen el % de uso de la CPU + tics de trabajo del proceso correspondiente al zócalo.
 	mov r0, r0, lsl #8
@@ -599,7 +605,8 @@ _gp_rsiTIMER0:
 	mov r1, r9
 	add r7, #4
 	subs r6, #1
-	bhi .L_calcular_porcentaje_qDelay
+	bhi .L_calcularPorcentaje_qDelay
+.L_finCalcularPorcentaje_qDelay:
 	ldr r0, =_gd_sincMain
 	ldr r1, [r0]
 	orr r1, #1
