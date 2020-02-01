@@ -195,7 +195,8 @@ extern int _gm_listaProgs(char* progs[]);
 		!= 0	->	dirección de inicio del programa (intFunc)
 		== 0	->	no se ha podido cargar el programa
 */
-extern intFunc _gm_cargarPrograma(/*int zocalo, */char *keyName);
+
+extern intFunc _gm_cargarPrograma(int zocalo, char *keyName);
 
 
 //------------------------------------------------------------------------------
@@ -310,7 +311,6 @@ extern void _gg_desplazar(int v);
 */
 extern void _gg_escribirCar(int vx, int vy, char c, int color, int ventana);
 
-
 /* _gg_escribirMat: escribe una matriz de 8x8 carácteres a partir de una
 				posición de la ventana indicada, con un color concreto;
 	Parámetros:
@@ -339,7 +339,6 @@ extern void _gg_rsiTIMER2();
 extern void _gg_fijarBaldosa(int a, int b, int c);
 
 extern void _gg_cambiaColor(int a, int b, int c);
-
 
 //------------------------------------------------------------------------------
 //	Rutinas de soporte al sistema (garlic_itcm_sys.s)

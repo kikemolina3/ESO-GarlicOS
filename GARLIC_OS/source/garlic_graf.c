@@ -1,8 +1,8 @@
 /*------------------------------------------------------------------------------
 
-	"garlic_graf.c" : fase 1 / programador G
+	"garlic_graf.c" : fase 2 / programador G
 
-	Funciones de gestión de las ventanas de texto (gráficas), para GARLIC 1.0
+	Funciones de gestión de las ventanas de texto (gráficas), para GARLIC 2.0
 
 ------------------------------------------------------------------------------*/
 #include <nds.h>

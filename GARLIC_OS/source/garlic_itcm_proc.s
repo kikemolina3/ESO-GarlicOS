@@ -5,8 +5,6 @@
 @;
 @;==============================================================================
 
-
-
 .section .itcm,"ax",%progbits
 
 	.arm
@@ -244,6 +242,7 @@ _gp_crearProc:
 	ldr r5, =_gd_pcbs				@; Se carga la dirección de memoria del vector de PCBs.
 	mov r4, #24						@; El zócalo se deberá multiplicar por 24 para acceder al PCB que se asignará al proceso que se quiere crear.
 	mla r4, r1, r4, r5				@; Se cálcula el índice para acceder al PID del proceso correspondiente al zócalo. El PID es el primer campo del PCB.
+	bl _gp_inhibirIRQs
 	ldr r5, [r4]					@; Se carga el PID del proceso corresponidente al zócalo.
 	cmp r5, #0						@; Se comprueba si el PID no es 0, es decir, si el zócalo ya está ocupado por otro proceso.
 	bne .L_no_crearProc				@; En caso afirmativo, se termina la ejecución de la rutina de creación de proceso.
@@ -277,7 +276,7 @@ _gp_crearProc:
 	str r5, [r4, #20]				@; Se almacenará el valor incial del contador de tics de trabajo en el campo correspondiente del vector de PCBs.
 	ldr r4, =_gd_qReady				@; Se carga la dirección base de la cola de Ready.
 	ldr r5, =_gd_nReady				@; Se carga la dirección de memoria que contiene el número de proceso en la cola de Ready.
-	bl _gp_inhibirIRQs
+	@; bl _gp_inhibirIRQs
 	ldr r6, [r5]					@; Se carga el valor del número de procesos en la cola de Ready.
 	strb r1, [r4, r6]				@; Se almacena el zócalo del proceso creado en la última posición de la cola de Ready.
 	add r6, #1						@; Se incrementa el número de procesos en la cola de Ready.
@@ -316,7 +315,7 @@ _gp_terminarProc:
 	orr r2, r3
 	str r2, [r0]			@; actualizar variable de sincronismo
 	bl _gp_desinhibirIRQs
-.LterminarProc_inf:
+.LterminarProc_inf:	
 	bl _gp_WaitForVBlank	@; pausar procesador
 	b .LterminarProc_inf	@; hasta asegurar el cambio de contexto
 	
@@ -541,7 +540,7 @@ _gp_rsiTIMER0:
 	ldr r0, =_gd_numeroString
 	add r1, r6, #4				@; La fila en la que se ha de imprimir el porcentaje de uso de la CPU se calcula sumando 4 al zócalo del proceso.
 	mov r2, #29
-	mov r3, #0x0				@; El porcentaje de uso de la CPU se imprimirá en color blanco.
+	ldr r3, =0x0				@; El porcentaje de uso de la CPU se imprimirá en color blanco.
 	bl _gs_escribirStringSub	@; Se imprime de la pantalla de trabajo el porcentaje de uso de la CPU por el proceso en la columna 13 y en la fila correspondiente a dicho proceso
 	mov r1, r7
 	ldr r7, =_gd_qReady
@@ -613,7 +612,5 @@ _gp_rsiTIMER0:
 	str r1, [r0]				@; Se pone a 1 el bit 0 de la variable global _gd_sincMain. 
 	pop {r0-r11, pc}
 
-
-	
 .end
 

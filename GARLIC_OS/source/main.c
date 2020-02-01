@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------------
 
-	"main.c" : fase 2 / progG y progP
+	"main.c" : fase 2 / progG y progP y progM
 
 ------------------------------------------------------------------------------*/
 #include <nds.h>
@@ -9,14 +9,17 @@
 
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
 
+unsigned int quo, res;
+
 const short divFreq2 = -33513982/(1024*4);	// frecuencia de TIMER2 = 4 Hz
 const short divFreq0 = -33513982/1024;		// frecuencia de TIMER0 = 1 Hz
+const short divFreq1 = -33513982/(1024*7);		// frecuencia de TIMER1 = 7 Hz
 
 const char *argumentosDisponibles[4] = {"0", "1", "2", "3"};
 		// se supone que estos programas están disponibles en el directorio
 		// "Programas" de las estructura de ficheros de Nitrofiles
 
-const char *progs[9] = {"HOLA","PRNT","LABE","DESC","CCDL","XIFA","BORR","CRON","PONG"};
+const char *progs[9] = {"HOLA", "PRNT", "LABE", "DESC", "CCDL", "XIFA", "BORR", "CRON", "PONG"};
 const int num_progs = 9;
 
 /* Función para presentar una lista de opciones y escoger una: devuelve el índice de la opción
@@ -76,9 +79,7 @@ void seleccionarPrograma()
 
 	for (i = 1; i < 16; i++)		// buscar si hay otro proceso en marcha
 		if (_gd_pcbs[i].PID != 0 && i == _gi_za)
-		{	//_gd_pcbs[i].PID = 0;
-			//_gd_nReady = 0;				// eliminar el proceso de cola de READY
-			_gp_matarProc(i);
+		{	_gp_matarProc(i);
 			_gd_wbfs[i].pControl = 0;	// resetear el contador de filas y caracteres
 			_gg_escribir("%3* %d: proceso destruido\n", i, 0, 0);
 			_gg_escribirLineaTabla(i, (i == _gi_za ? 2 : 3));
@@ -93,9 +94,9 @@ void seleccionarPrograma()
 	
 	_gs_borrarVentana(_gi_za, 1);
 	
-	start = _gm_cargarPrograma((char *) progs[ind_prog]);
+	start = _gm_cargarPrograma(_gi_za, (char *) progs[ind_prog]);
 	if (start)
-	{	_gg_escribir("::%d::", _gi_za, 0, 0);
+	{
 		_gp_crearProc(start, _gi_za, (char *) progs[ind_prog], argumento);
 		_gg_escribir("%2* %d:%s.elf", _gi_za, (unsigned int) progs[ind_prog], 0);
 		_gg_escribir(" (%d)\n", argumento, 0, 0);
@@ -106,26 +107,7 @@ void seleccionarPrograma()
 	}
 }
 
-
-/* función para escribir los porcentajes de uso de la CPU de los procesos de los
-		cuatro primeros zócalos, en el caso que la RSI del TIMER0 haya realizado
-		el cálculo */
-/*
-void porcentajeUso()
-{
-	if (_gd_sincMain & 1)			// verificar sincronismo de timer0
-	{
-		_gd_sincMain &= 0xFFFE;			// poner bit de sincronismo a cero
-		_gg_escribir("***\t%d%%  %d%%", _gd_pcbs[0].workTicks >> 24,
-										_gd_pcbs[1].workTicks >> 24, 0);
-		_gg_escribir("  %d%%  %d%%\n", _gd_pcbs[2].workTicks >> 24,
-										_gd_pcbs[3].workTicks >> 24, 0);
-	}
-}
-*/
-
-/* Función para gestionar los sincronismos generados por diversas rutinas
-		para el programa principal */
+/* Función para gestionar los sincronismos  */
 void gestionSincronismos()
 {
 	int i, mask;
@@ -136,9 +118,10 @@ void gestionSincronismos()
 		for (i = 1; i <= 15; i++)
 		{
 			if (_gd_sincMain & mask)
-			{	// actualizar visualización de tabla de zócalos
+			{	// liberar la memoria del proceso terminado
+				_gm_liberarMem(i);
+				_gg_escribir("* %d: proceso terminado\n", i, 0, 0);
 				_gg_escribirLineaTabla(i, (i == _gi_za ? 2 : 3));
-				_gg_escribir("%0* %d: proceso terminado\n", i, 0, 0);
 				_gd_sincMain &= ~mask;		// poner bit a cero
 			}
 			mask <<= 1;
@@ -146,12 +129,12 @@ void gestionSincronismos()
 	}
 }
 
-
 /* Inicializaciones generales del sistema Garlic */
 //------------------------------------------------------------------------------
 void inicializarSistema() {
 //------------------------------------------------------------------------------
 
+	int v;
 	_gg_iniGrafA();			// inicializar procesadores gráficos
 	_gs_iniGrafB();
 	_gs_dibujarTabla();
@@ -163,7 +146,7 @@ void inicializarSistema() {
 	
 	_gi_redibujarZocalo(1);			// marca tabla de zócalos con el proceso
 									// del S.O. seleccionado (en verde)
-	
+
 	if (!_gm_initFS()) {
 		_gg_escribir("ERROR: ¡no se puede inicializar el sistema de ficheros!", 0, 0, 0);
 		exit(0);
@@ -187,6 +170,11 @@ void inicializarSistema() {
 	TIMER0_DATA = divFreq0; 
 	TIMER0_CR = 0xC3;  	// Timer Start | IRQ Enabled | Prescaler 3 (F/1024)
 	
+	irqSet(IRQ_TIMER1, _gm_rsiTIMER1);
+	irqEnable(IRQ_TIMER1);				// instalar la RSI para el TIMER1
+	TIMER1_DATA = divFreq1; 
+	TIMER1_CR = 0xC3;  	// Timer Start | IRQ Enabled | Prescaler 3 (F/1024)
+	
 	REG_IME = IME_ENABLE;			// activar las interrupciones en general      
 }
 
@@ -195,6 +183,7 @@ void inicializarSistema() {
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //------------------------------------------------------------------------------
+
 	int key;
 
 	inicializarSistema();
@@ -223,6 +212,4 @@ int main(int argc, char **argv) {
 	}
 	return 0;	
 }
-
-
 

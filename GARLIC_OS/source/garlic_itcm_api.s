@@ -97,7 +97,7 @@ _ga_printf:
 	push {r4, lr}
 	ldr r4, =_gd_pidz		@; R4 = dirección _gd_pidz
 	ldr r3, [r4]
-	and r3, #0xF			@; R3 = ventana de salida (zócalo actual MOD 4)
+	and r3, #0xF			@; R3 = ventana de salida (zócalo actual MOD 16)
 	bl _gg_escribir
 	pop {r4, pc}
 
@@ -166,6 +166,6 @@ _ga_clear:
 	mov r1, #0				@; R1 = 0 -> 4 ventanas
 	bl _gs_borrarVentana
 	pop {r0-r1, pc}
-	
+
 .end
 
