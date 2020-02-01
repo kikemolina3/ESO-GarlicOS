@@ -147,9 +147,7 @@ _gg_calcIniFondo:
 	mov r2, r2, lsl #L2_PPART
 	sub r2, #1								@; r2 = mascara columna
 	and r4, r2, r0							@; r4 = columna
-	mov r2, r2, lsl #L2_PPART				@; r2 = mascara fila
-	and r5, r2, r0							
-	mov r5, r5, lsr #L2_PPART				@; r5 = fila
+	mov r5, r0, lsr #L2_PPART				@; r5 = fila
 	mov r6, #PCOLS*VFILS*2	
 	mul r2, r5, r6							@; r2 = 2*PCOLS*VFILS*fila
 	mov r6, #VCOLS*2
@@ -175,34 +173,30 @@ _gg_escribirLineaTabla:
 	mov r11, r3					@; r11 = zocalo
 	mov r4, r1					@; r4 = color
 	ldr r5, =BASE_SUB+4*32*2	@; r5 = dir. mem. linea 0
-	mov r6, #64
-	mul r6, r3					@; r6 = desplazamiento en linea segun zocalo
+	mov r6, r3, lsl #6			@; r6 = desplazamiento en linea segun zocalo
 	add r5, r6					@; r5 = dir. mem. linea a escribir
-	mov r6, #128				@; r6 = numero de baldosas del mismo color
-	mul r6, r4					@; r6 = desplazamiento color
-	mov r7, #0x68
-	add r7, r6					@; r7 = baldosa de pared
+	mov r6, r4, lsl #7			@; r6 = desplazamiento color
+	add r7, r6, #0x68			@; r7 = baldosa de pared
 	strh r7, [r5] 
 	add r5, #2					@; avance puntero escritura pantalla
 	@; INICIO ESCRITURA Z
-	sub sp, #3					@; abrir espacio en pila (3 bytes cadena texto) 
+	sub sp, #4					@; abrir espacio en pila (3 bytes cadena texto) --> 4 para mantener alineacion
 	mov r0, sp
 	mov r9, r0					@; r9 = dir. mem. cadena caracteres
 	mov r1, #3					@; r1 = longitud
 	mov r2, r3					@; r2 = numero a convertir
 	bl _gs_num2str_dec
 	mov r0, r9					@; r0 = dir. mem. cadena caracteres
-	mov r1, #4
-	add r1, r3					@; r1 = fila
+	add r1, r3, #4				@; r1 = fila
 	mov r8, r1					@; r8 = fila
 	mov r2, #1					@; r2 = columna
 	mov r3, r4					@; r3 = color
 	bl _gs_escribirStringSub
-	add sp, #3
+	add sp, #4
 	add r5, #4
 	strh r7, [r5]				@; escribe pared
 	@; INICIO ESCRITURA PID
-	sub sp, #5					@; abrir espacio pila (5 bytes)
+	sub sp, #8					@; abrir espacio pila (5 bytes) --> 8 para mantener alineacion
 	mov r9, sp					@; r9 = dir. mem. cadena caracteres
 	mov r1, #5					@; r1 = longitud
 	ldr r2, [r10]				@; r2 = PID
@@ -214,7 +208,7 @@ _gg_escribirLineaTabla:
 	mov r2, #4					@; r2 = columna
 	mov r3, r4					@; r3 = color
 	bl _gs_escribirStringSub	
-	add sp, #5
+	add sp, #8
 	add r5, #10
 	strh r7, [r5]				@; escribe pared
 	@; INICIO ESCRITURA KEYNAME
@@ -259,8 +253,7 @@ _gg_lineaVacia:
 	@; 		r0 = zocalo
 	push {r0-r2, lr}
 	ldr r1, =BASE_SUB+(4+32*4)*2				@; BASE FONDO + 2bytes * (4 lineas * 32 baldosas/linea + 4 caracteres iniciales)
-	mov r2, #32*2								@; r2 = 32 baldosas/linea * 2bytes
-	mul r2, r0									@; r2 = desplazamiento de linea = nro zocalo * tamaño linea
+	mov r2, r0, lsl #6							@; r2 = desplazamiento de linea = nro zocalo * tamaño linea (32 baldosas/linea * 2bytes)
 	add r1, r2									@; r1 = 1a pos a "blanquear"
 	mov r0, #0									@; r0 = caracter ' '
 	mov r2, #0
@@ -302,18 +295,15 @@ _gg_lineaVacia:
 _gg_escribirCar:
 	push {r0-r5, lr}
 	mov r4, r0					@; r4 = coordenada X
-	add sp, #4*7				@; 4bytes * 7 pos. memoria (6 regs + lr)
-	ldr r0, [sp]				@; localizacion de 5to parametro
-	sub sp, #4*7
+	ldr r0, [sp, #4*7]			@; localizacion de 5to parametro ¦ 4bytes * 7 pos. memoria (6 regs + lr)
 	bl _gg_calcIniFondo
 	mov r5, #PCOLS*2
 	mul r5, r1					@; r5 = VCOLS * 2 * columnas previas	
-	mov r1, #2
-	mul r4, r1					@; r4 = 2 * coordenada X
+	mov r4, r4, lsl #1			@; r4 = 2 * coordenada X
 	add r5, r4					@; posicionamiento en ventana
 	add r5, r0					@; r5 = @inicial + desplazamiento --> baldosa a escribir	
-	mov r1, #128
-	mla r2, r3, r1, r2  		@; r2 = codigo baldosa a escribir
+	mov r1, r3, lsl #7
+	add r2, r1			 		@; r2 = codigo baldosa a escribir
 	strh r2, [r5]
 	pop {r0-r5, pc}
 
@@ -330,18 +320,14 @@ _gg_escribirCar:
 _gg_escribirMat:
 	push {r0-r8, lr}
 	mov r4, r0					@; r4 = coordenada X
-	add sp, #4*10				@; 4bytes * 10 pos. memoria (9 regs + lr)
-	ldr r0, [sp]				@; localizacion de 5to parametro
-	sub sp, #4*10
+	ldr r0, [sp, #40]			@; localizacion de 5to parametro ¦ 4bytes * 10 pos. memoria (9 regs + lr)
 	bl _gg_calcIniFondo
 	mov r5, #PCOLS*2
 	mul r5, r1					@; r5 = PCOLS * 2 * filas previas	
-	mov r1, #2
-	mul r4, r1					@; r4 = 2 * coordenada X
+	mov r4, r4, lsl #1			@; r4 = 2 * coordenada X
 	add r5, r4					@; posicionamiento en ventana
 	add r5, r0					@; r5 = @inicial + desplazamiento --> baldosa a escribir
-	mov r1, #128
-	mul r3, r1					@; r3 = desplazamiento a sumar de baldosas
+	mov r3, r3, lsl #7			@; r3 = desplazamiento a sumar de baldosas
 	mov r8, #0					@; r8 = contador de col
 .Literacol:
 	mov r6, #0					@; r6 = contador de fila
@@ -385,7 +371,7 @@ _gg_rsiTIMER2:
 	beq .Lpasa					@; SOLO MOSTRARÁ PC SI (ZOCALO ACTIVO o Z=0 (sist. operativo))
 .Lsigue:
 	add r7, #4					@; r4 = @pc actual
-	sub sp, #9					@; abrir espacio pila
+	sub sp, #12					@; abrir espacio pila
 	mov r0, sp
 	mov r9, sp
 	mov r1, #9					@; r1 = longitud cadena numero hex
@@ -395,7 +381,7 @@ _gg_rsiTIMER2:
 	add r1, r5, #4				@; r1 = fila
 	mov r2, #14					@; r2 = columna
 	bl _gs_escribirStringSub
-	add sp, #9					@; restaurar pila
+	add sp, #12					@; restaurar pila
 .Lpasa:
 	add r5, #1					@; zocalo ++
 	cmp r5, #NVENT

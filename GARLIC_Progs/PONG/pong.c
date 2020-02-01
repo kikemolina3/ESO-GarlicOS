@@ -39,7 +39,7 @@ int _start(int arg)				/* función de inicio : no se usa 'main' */
 			diry = -diry;				// rebote arriba o abajo
 		if ((x == 0) && (y == 0))
 			y = 1;						// forzar posiciones (x+y) impares
-		else if ((x == 0) && (y == 1))
+		else if ((x == 0) && (y == 0))
 		{	y = 0;						// forzar posiciones (x+y) pares
 			diry = 1;						// forzar dirección derecha
 		}

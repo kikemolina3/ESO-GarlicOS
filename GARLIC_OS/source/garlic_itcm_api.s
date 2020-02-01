@@ -167,7 +167,6 @@ _ga_clear:
 	mov r1, #1				@; R1 = 1 -> 16 ventanas
 	bl _gs_borrarVentana
 	pop {r0-r1, pc}
-
-
+	
 .end
 

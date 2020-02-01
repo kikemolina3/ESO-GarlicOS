@@ -93,8 +93,8 @@ void _gg_iniGrafA()
 	_gs_copiaMem(garlic_fontPal, BG_PALETTE, sizeof(garlic_fontPal));
 	for(i=0; i<NVENT; i++)
 		_gg_generarMarco(i, 3);
-	bgSetScale(bg3,0x00000400,0x00000400);
-	bgSetScale(bg2,0x00000400,0x00000400);
+	bgSetScale(bg3,0x00000200,0x00000200);
+	bgSetScale(bg2,0x00000200,0x00000200);
 	bgUpdate();
 }
 
@@ -221,7 +221,7 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 	
 	_gg_procesarFormato(formato, val1, val2, res);
 	
-	int index_color = (_gd_wbfs[ventana].pControl & 0xF0000000) >> 28;							// 4 bits altos --> color
+	int index_color = _gd_wbfs[ventana].pControl >> 28;											// 4 bits altos --> color
 	int fila_actual = ((_gd_wbfs[ventana].pControl & 0xFFF0000) >> 16);							// 12 medios --> fila actual
 	int num_char = _gd_wbfs[ventana].pControl & 0xFFFF;											// 16 bajos --> num_caracteres pendientes
 	int i;
@@ -233,21 +233,9 @@ void _gg_escribir(char *formato, unsigned int val1, unsigned int val2, int venta
 		{
 			char n = res[i+1];
 			if(n >= '0' && n <= '3')
-				i += 2;
-			switch(n)
 			{
-				case '0':
-					index_color = 0; 
-					break;
-				case '1':
-					index_color = 1; 
-					break;
-				case '2':
-					index_color = 2; 
-					break;
-				case '3':
-					index_color = 3; 
-					break;
+				i += 2;
+				index_color = n - '0';
 			}
 		}
 		if(res[i] == 9)			//horizontal tab
