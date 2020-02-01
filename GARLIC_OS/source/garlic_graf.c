@@ -92,7 +92,10 @@ void _gg_iniGrafA()
 	}
 	_gs_copiaMem(garlic_fontPal, BG_PALETTE, sizeof(garlic_fontPal));
 	for(i=0; i<NVENT; i++)
+	{
 		_gg_generarMarco(i, 3);
+		_gd_wbfs[i].pControl = 0;
+	}
 	bgSetScale(bg3,0x00000200,0x00000200);
 	bgSetScale(bg2,0x00000200,0x00000200);
 	bgUpdate();

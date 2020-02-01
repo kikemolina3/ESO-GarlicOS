@@ -279,6 +279,14 @@ _gg_lineaVacia:
 	add r2, #1
 	cmp r2, #8
 	blo .Lborr3
+	add r1, #14
+	mov r2, #0
+.Lborr4:				@; borrado de uso
+	strh r0, [r1]
+	add r1, #2
+	add r2, #1
+	cmp r2, #2
+	blo .Lborr4
 	pop {r0-r2, pc}
 
 
@@ -332,7 +340,7 @@ _gg_escribirMat:
 .Literacol:
 	mov r6, #0					@; r6 = contador de fila
 .Literafila:
-	cmp r6, #8				
+	cmp r6, #6				
 	bhs .Lfinfila				
 	ldrb r7, [r2]				@; r7 = cod. ASCII de caracter
 	cmp r7, #32	
@@ -346,7 +354,8 @@ _gg_escribirMat:
 	add r2, #1					@; @matriz a escribir + 1 (siguiente caracter)
 	b .Literafila
 .Lfinfila:
-	add r5, #2*PCOLS-16			@; salto linea a 1a pos 
+	add r5, #2*PCOLS-12			@; salto linea a 1a pos 
+	add r2, #2
 	add r8, #1					@; columna++
 	cmp r8, #8
 	blo .Literacol

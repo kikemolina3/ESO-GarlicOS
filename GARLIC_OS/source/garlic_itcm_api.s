@@ -97,7 +97,7 @@ _ga_printf:
 	push {r4, lr}
 	ldr r4, =_gd_pidz		@; R4 = dirección _gd_pidz
 	ldr r3, [r4]
-	and r3, #0xF			@; R3 = ventana de salida (zócalo actual MOD 16)
+	and r3, #0xF			@; R3 = ventana de salida (zócalo actual MOD 4)
 	bl _gg_escribir
 	pop {r4, pc}
 
@@ -118,8 +118,7 @@ _ga_printchar:
 	add sp, #4				@; eliminar 4º parámetro de la pila
 	pop {r4-r5, pc}
 
-
-	.global _ga_printmat
+.global _ga_printmat
 	@;Parámetros
 	@; R0: int vx
 	@; R1: int vy
@@ -164,7 +163,7 @@ _ga_clear:
 	ldr r1, =_gd_pidz
 	ldr r0, [r1]
 	and r0, #0xf			@; R0 = zócalo actual
-	mov r1, #1				@; R1 = 1 -> 16 ventanas
+	mov r1, #0				@; R1 = 0 -> 4 ventanas
 	bl _gs_borrarVentana
 	pop {r0-r1, pc}
 	

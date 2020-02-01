@@ -1,9 +1,6 @@
 /*------------------------------------------------------------------------------
 
-	"main.c" : fase 2 / ProgG
-
-	Programa de control del sistema operativo GARLIC, versión 2.0
-	(escribir mensajes en color, escribir caracteres y matrices de caracteres)
+	"main.c" : fase 2 / progG y progP
 
 ------------------------------------------------------------------------------*/
 #include <nds.h>
@@ -13,6 +10,7 @@
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
 
 const short divFreq2 = -33513982/(1024*4);	// frecuencia de TIMER2 = 4 Hz
+const short divFreq0 = -33513982/1024;		// frecuencia de TIMER0 = 1 Hz
 
 const char *argumentosDisponibles[4] = {"0", "1", "2", "3"};
 		// se supone que estos programas están disponibles en el directorio
@@ -73,11 +71,14 @@ void seleccionarPrograma()
 {
 	intFunc start;
 	int ind_prog, argumento, i;
+	
+	_gs_borrarVentana(_gi_za, 1);
 
 	for (i = 1; i < 16; i++)		// buscar si hay otro proceso en marcha
-		if (_gd_pcbs[i].PID != 0)
-		{	_gd_pcbs[i].PID = 0;
-			_gd_nReady = 0;				// eliminar el proceso de cola de READY
+		if (_gd_pcbs[i].PID != 0 && i == _gi_za)
+		{	//_gd_pcbs[i].PID = 0;
+			//_gd_nReady = 0;				// eliminar el proceso de cola de READY
+			_gp_matarProc(i);
 			_gd_wbfs[i].pControl = 0;	// resetear el contador de filas y caracteres
 			_gg_escribir("%3* %d: proceso destruido\n", i, 0, 0);
 			_gg_escribirLineaTabla(i, (i == _gi_za ? 2 : 3));
@@ -85,22 +86,43 @@ void seleccionarPrograma()
 				_gg_generarMarco(i, 3);
 			break;					// abortar bucle
 		}
-	_gs_borrarVentana(_gi_za, 1);
 	_gg_escribir("%1*** Seleccionar programa :\n", 0, 0, _gi_za);
 	ind_prog = escogerOpcion((char **) progs, num_progs);
 	_gg_escribir("%1*** Seleccionar argumento :\n", 0, 0, _gi_za);
 	argumento = escogerOpcion((char **) argumentosDisponibles, 4);
 	
+	_gs_borrarVentana(_gi_za, 1);
+	
 	start = _gm_cargarPrograma((char *) progs[ind_prog]);
 	if (start)
-	{	_gp_crearProc(start, _gi_za, (char *) progs[ind_prog], argumento);
+	{	_gg_escribir("::%d::", _gi_za, 0, 0);
+		_gp_crearProc(start, _gi_za, (char *) progs[ind_prog], argumento);
 		_gg_escribir("%2* %d:%s.elf", _gi_za, (unsigned int) progs[ind_prog], 0);
 		_gg_escribir(" (%d)\n", argumento, 0, 0);
 		_gg_escribirLineaTabla(_gi_za, 2);
 	}
+	else {
+		_gg_escribir("Programa no cargado", 0, 0, 0);
+	}
 }
 
 
+/* función para escribir los porcentajes de uso de la CPU de los procesos de los
+		cuatro primeros zócalos, en el caso que la RSI del TIMER0 haya realizado
+		el cálculo */
+/*
+void porcentajeUso()
+{
+	if (_gd_sincMain & 1)			// verificar sincronismo de timer0
+	{
+		_gd_sincMain &= 0xFFFE;			// poner bit de sincronismo a cero
+		_gg_escribir("***\t%d%%  %d%%", _gd_pcbs[0].workTicks >> 24,
+										_gd_pcbs[1].workTicks >> 24, 0);
+		_gg_escribir("  %d%%  %d%%\n", _gd_pcbs[2].workTicks >> 24,
+										_gd_pcbs[3].workTicks >> 24, 0);
+	}
+}
+*/
 
 /* Función para gestionar los sincronismos generados por diversas rutinas
 		para el programa principal */
@@ -125,33 +147,32 @@ void gestionSincronismos()
 }
 
 
-
 /* Inicializaciones generales del sistema Garlic */
 //------------------------------------------------------------------------------
 void inicializarSistema() {
 //------------------------------------------------------------------------------
+
+	_gg_iniGrafA();			// inicializar procesadores gráficos
+	_gs_iniGrafB();
+	_gs_dibujarTabla();
 
 	_gd_seed = *punixTime;	// inicializar semilla para números aleatorios con
 	_gd_seed <<= 16;		// el valor de tiempo real UNIX, desplazado 16 bits
 	
 	_gd_pcbs[0].keyName = 0x4C524147;	// "GARL"
 	
-	_gg_iniGrafA();					// inicializar gráficos
-	_gs_iniGrafB();
-	_gs_dibujarTabla();
-	
 	_gi_redibujarZocalo(1);			// marca tabla de zócalos con el proceso
 									// del S.O. seleccionado (en verde)
 	
-	if (!_gm_initFS())
-	{	_gg_escribir("%3ERROR: ¡no se puede utilizar sistema de ficheros!", 0, 0, 0);
+	if (!_gm_initFS()) {
+		_gg_escribir("ERROR: ¡no se puede inicializar el sistema de ficheros!", 0, 0, 0);
 		exit(0);
 	}
 
 	irqInitHandler(_gp_IntrMain);	// instalar rutina principal interrupciones
 	irqSet(IRQ_VBLANK, _gp_rsiVBL);	// instalar RSI de vertical Blank
 	irqEnable(IRQ_VBLANK);			// activar interrupciones de vertical Blank
-
+	
 	irqSet(IRQ_TIMER2, _gg_rsiTIMER2);
 	irqEnable(IRQ_TIMER2);			// instalar la RSI para el TIMER2
 	TIMER2_DATA = divFreq2; 
@@ -160,6 +181,11 @@ void inicializarSistema() {
 	irqSet(IRQ_VCOUNT, _gi_movimientoVentanas);
 	REG_DISPSTAT |= 0xE620;			// fijar linea VCOUNT a 230 y activar int.
 	irqEnable(IRQ_VCOUNT);			// de VCOUNT
+	
+	irqSet(IRQ_TIMER0, _gp_rsiTIMER0);
+	irqEnable(IRQ_TIMER0);				// instalar la RSI para el TIMER0
+	TIMER0_DATA = divFreq0; 
+	TIMER0_CR = 0xC3;  	// Timer Start | IRQ Enabled | Prescaler 3 (F/1024)
 	
 	REG_IME = IME_ENABLE;			// activar las interrupciones en general      
 }
@@ -178,22 +204,25 @@ int main(int argc, char **argv) {
 	_gg_escribir("%1* Sistema Operativo GARLIC 2.0 *", 0, 0, 0);
 	_gg_escribir("%1*                              *", 0, 0, 0);
 	_gg_escribir("%1********************************", 0, 0, 0);
-	_gg_escribir("%1*** Inicio fase 2_G\n", 0, 0, 0);
-		
-	
+	_gg_escribir("%1*** Inicio fase 2_GyP\n", 0, 0, 0);
 		
 	while (1)						// bucle infinito
 	{
 		scanKeys();
 		key = keysDown();			// leer botones y controlar la interfaz
 		if (key != 0)				// de usuario
-		{	_gi_controlInterfaz(key);
+		{	
+			_gi_controlInterfaz(key);
 			if ((key == KEY_START) && (_gi_za != 0))
+			{
 				seleccionarPrograma();
+			}
 		}
 		gestionSincronismos();
 		_gp_WaitForVBlank();		// retardo del proceso de sistema
 	}
-	
-	return 0;			
+	return 0;	
 }
+
+
+
